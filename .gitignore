@@ -1,0 +1,14 @@
+# Secrets and local environments
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+build/
+coverage/
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.py[cod]
+.DS_Store
