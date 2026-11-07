@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "0.1",
+  "scenarioId": "gulfport-demo-01",
+  "timeStepMinutes": 60,
+  "timezone": "America/Chicago",
+  "synthetic": true,
+  "description": "Fictional single-day charging/workload sample for Gulfport-inspired visual demo; not Gulfport operating data.",
+  "vessels": [
+    {
+      "id": "V1",
+      "arrivalStep": 2,
+      "departureStep": 6
+    }
+  ],
+  "equipment": [
+    {
+      "id": "FL1",
+      "type": "forklift",
+      "powertrain": "electric",
+      "batteryCapacityKWh": 80,
+      "initialBatteryKWh": 60,
+      "minimumBatteryKWh": 10,
+      "chargePowerKW": 20,
+      "workConsumptionKWhPerStep": 10
+    }
+  ],
+  "jobs": [
+    {
+      "id": "J1",
+      "vesselId": "V1",
+      "startStep": 2,
+      "endStep": 4,
+      "requiredEquipmentType": "forklift",
+      "requiredUnits": 1
+    }
+  ],
+  "chargers": {
+    "count": 1,
+    "sitePowerLimitKW": 20
+  },
+  "energy": {
+    "electricityUSDPerKWh": 0.12,
+    "demandChargeUSDPerKW": 15
+  },
+  "provenance": {
+    "publicPortContext": "Sourced public Gulfport references to be verified by research teammate; none are represented in this fixture.",
+    "operations": "SYNTHETIC: vessel timing, job, powertrain, charger, battery, tariff and other numeric values are made-up test assumptions."
+  }
+}

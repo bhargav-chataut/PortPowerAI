@@ -1,56 +1,18 @@
-# AGENTS.md — Codex instructions for PortPower AI
+# PortPower AI — rules for coding agents
 
-Read `docs/TECHNICAL_SPEC.md`, `docs/API_AND_DATA_CONTRACTS.md` and `docs/TASK_BOARD.md` **before editing**. Product concept source is the supplied `PortPower_AI_Hatchathon.docx`; technical docs contain proposed implementation choices.
+**Primary team plan:** [TEAM_AGENTS.md](TEAM_AGENTS.md). **Contract draft:** [shared/contract.md](shared/contract.md). Do not follow the superseded TypeScript-monorepo/FastAPI-AI-adapter plans.
 
-## Hard rules
-1. Never invent real port data, estimated savings, specs, tariffs or citations. Synthetic values must be visibly labeled synthetic.
-2. AI extraction is not numerical optimization; only deterministic, validated core functions calculate metrics.
-3. Never present an infeasible proposal as a valid nudge. Preserve required work, charger limit, grid cap, battery SOC and charge windows.
-4. Keep the P0 simulator runnable with no API key, backend, network or hosted ML model.
-5. Treat `packages/core/src/types.ts` as contract authority. If change is necessary, propose it in the PR before editing files owned by other tracks.
-6. Do not expose provider API keys in frontend, source control, logs or exported reports.
-7. No industrial control, autonomous dispatch or promises of validated financial savings.
-8. Tests are mandatory for formulas, schedulers, constraints and provenance.
+1. Read the team plan and shared JSON fixtures before coding. Treat these as a starter proposal; coordinate any contract changes with the lead.
+2. Respect ownership: Nishan `backend/`; Binita `frontend/`; lead `optimizer/` + `shared/`; Warda `research/` + `pitch/`. Do not edit teammates' folders without agreement.
+3. Use separate branches and reviewable PRs. Report exactly what was implemented, tested and left incomplete. Do not claim tests passed without running them.
+4. Frontend framework is **not yet decided**. Do not force React/Vite or any other choice without Binita and the team's decision.
+5. Keep port-specific facts in versioned configuration/data, not in optimizer or backend logic. First scenario ID: `gulfport-demo-01`.
+6. Backend: Node.js + Express + PostgreSQL, fixture fallback; calls Python optimizer by HTTP. Python: independent service, no direct DB access. Frontend only calls Express API (or a fixture adapter before integration).
+7. Verify every proposed schedule: vessel job coverage, work windows, battery SOC, number/power of chargers, and site power. Return `feasible=false` and warnings on invalid plans; never advertise an infeasible recommendation as savings.
+8. Keep public Gulfport facts distinct from fictional machine assignments, electric fleets, chargers, energy values, savings and site layouts. Never infer real-world measurements from published inventory or vessel ETA.
+9. No live port integrations, autonomous dispatch, industrial control, AI training, fully accurate 3D, accounts or unsupported ROI claims in P0.
+10. No API keys in client code, fixtures or commits. Add startup scripts and tests inside your own folder when implementation begins.
 
-## File ownership boundaries
-- `frontend-agent`: `apps/web/**`; may import but not edit `packages/core/**`.
-- `core-agent` (AI lead supervises): `packages/core/**`; owns numeric simulation and optimization, plus fixture validation.
-- `backend-agent`: `services/ai-api/**`; no changes to engine or UI by default.
-- `integration-agent` (explicitly assigned only): root build configs and shared integration files; coordinates contract migrations.
-- `research-human`: assumptions ledger, public citations, claims, presentation and test-case validation.
+**PR checklist:** ownership scope; contract compatibility; exact run/test commands and results; screenshots for UI work; provenance/limitations; unresolved blockers.
 
-## Branch / task protocol
-1. Pick one ticket from `docs/TASK_BOARD.md` and state files to change.
-2. Identify assumptions/uncertainties before coding; follow v1 contracts exactly.
-3. Implement smallest working vertical slice, include tests.
-4. Run relevant lint/typecheck/tests and note commands and outcomes. If tooling is missing, say so explicitly.
-5. Submit concise PR notes: scope, changed files, results, screenshots if visual, any changed assumptions, open questions.
-6. Do not merge or overwrite another agent's in-progress files without team review.
-
-## Commands (target scripts; create when bootstrapping)
-- `npm install`
-- `npm run dev --workspace apps/web`
-- `npm run test --workspace packages/core`
-- `npm run build --workspace apps/web`
-- `python -m pytest services/ai-api/tests`
-
-If actual workspace scripts differ, update `README.md` and this file rather than pretending the commands work.
-
-## Definition of output quality
-- No placeholder charts/percentages disguised as engine output.
-- Strong empty/loading/error states and mobile layout.
-- Clear units (`kW` versus `kWh`, gallons, USD, kgCO2e).
-- Deterministic results and explicit case of 'no feasible charging schedule'.
-- Ability to demonstrate P0 offline from versioned fixtures.
-
-## Agent task prompt template
-```text
-You are the [frontend/core/backend] agent for PortPower AI.
-Read AGENTS.md and all docs under docs/.
-Ticket: [ID and description].
-Allowed edit paths: [paths].
-Do not modify other ownership paths.
-Honor v1 shared interfaces; synthetic numbers are examples only.
-Write implementation and automated tests; run available checks.
-Return: files changed, exact commands/tests, screenshots (if UI), unresolved decisions, PR summary.
-```
+The existing `demo/index.html` is a standalone historical demo, not the new frontend source of truth. Preserve it as a fallback; do not modify it unless assigned.

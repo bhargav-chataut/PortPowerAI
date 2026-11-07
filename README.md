@@ -1,33 +1,32 @@
-# PortPowerAI — Offline Demo MVP
+# PortPower AI
 
-## Run it
-Open `index.html` in any modern browser. No npm, server, API key or account needed. Fonts fall back to system fonts when offline.
+USM Hatchathon — Blue Economy / Ocean Power. A **configurable, advisory port-energy planning platform** demonstrated using a **Port of Gulfport-inspired** scenario.
 
-## Tomorrow's demo (90 seconds)
-1. Explain the fictional port: four forklifts, diesel energy use, considering 2 electric replacements.
-2. Point to the scenario controls. Change electric units from 2 to 3 and back.
-3. Compare naive simultaneous charging (amber) against coordinated charging (mint) on the chart.
-4. Reduce site capacity to 150 kW to show the feasibility guardrail.
-5. Restore 180 kW, change idle reduction, and export the assumptions/report.
+**Current status:** Team integration in progress. The standalone older proof of concept lives at [demo/index.html](demo/index.html) and opens locally in a browser. **It is NOT the connected Node/Python architecture or a verified Gulfport digital twin.**
 
-## What is real / what is not
-- **Real software**: fully functional calculations, deterministic heuristic optimizer, input controls, visual comparisons, JSON export, feasibility alerts.
-- **Synthetic**: facility hourly base load, fleet duty cycle, consumption rates, emissions factor, costs, and motion visualization.
-- **Not implemented**: AI vision, real port data import, production persistence, hardware control, CAPEX/payback, genuine telematics, real-time physics synchronization.
-- **Do not claim** displayed savings are achievable at a particular port. This is a concept validation simulation.
+## MVP for November 9
+One day, one vessel work window, a small **synthetic** equipment fleet, charger constraints, baseline vs feasible optimized schedule, a 2D terminal visualization, and before/after estimated energy, peak power, and operating costs. Results must show assumptions and infeasibility rather than fabricated benefits.
 
-## Current simplifying assumptions
-- Four forklifts, 8 active hours + 2 idle hours/day per machine, 300 days/year.
-- Diesel active: 2.2 L/hour; diesel idle: 1.1 L/hour.
-- Electric work: 9 kWh/hour and 90% charging efficiency.
-- An 8-hour overnight 22:00–06:00 charging window.
-- One dedicated charger per electric forklift (same selected kW per charger).
-- All electric forklifts must receive full daily grid energy before 06:00.
-- Site load is a synthetic 24-hour profile.
-- Daily site peak is assumed representative of every billing month for illustrative demand charges. Total annual cost includes diesel, *incremental electric forklift* energy and a monthly demand charge on total site peak; common facility kWh charges are excluded in all scenarios.
-- Diesel CO2 factor 2.68 kg/L is illustrative; grid factor adjustable.
-- Idle reduction only affects diesel idle fuel, not workload.
-- No upfront electric equipment or charger capital investment, battery degradation, labor expenses, charger installation, or maintenance modeled.
+## Team and architecture
+- **Nishan:** `backend/` — Node.js + Express + PostgreSQL, REST adapter and simulator.
+- **Binita:** `frontend/` — visual port, playback, controls, before/after comparison. **Framework TBD by team.**
+- **Project lead:** `optimizer/` and `shared/` — standalone Python optimizer HTTP service, integration and contracts.
+- **Warda:** `research/` and `pitch/` — verified public Gulfport references, assumption ledger, customer research and demo pitch.
 
-## Technical notes
-Pure HTML/CSS/JavaScript in a single file to make a meeting demo robust. Scheduling is greedy plus local swaps; not an exact solver or globally optimal guarantee. For a production prototype separate the calculation engine and test it on edge cases, then implement constraint-aware optimization with formal validation.
+**Integration:** frontend → Express backend → Python optimizer. The backend alone owns PostgreSQL. Each component must work first from versioned JSON fixtures. Backend should remain usable with fixture mode if Postgres is down.
+
+## Start here
+1. Read [TEAM_AGENTS.md](TEAM_AGENTS.md) and [AGENTS.md](AGENTS.md).
+2. Review [shared/contract.md](shared/contract.md), [shared/scenario.example.json](shared/scenario.example.json), and [shared/result.example.json](shared/result.example.json). These are **starter integration fixtures; finalize the contract together before implementing**.
+3. Work in your own folder and feature branch. Open PRs with commands and tests; don't overwrite another person's work.
+4. Once backend/frontend/optimizer code is committed, document real run/test commands here. **No integrated build command exists yet.**
+
+## Expected endpoints
+Express: `GET /api/health`, `GET /api/scenario`, `POST /api/simulate`, `POST /api/optimize`.
+Python: `GET /health`, `POST /optimize`. Configured through `OPTIMIZER_URL`. See shared contract for the response shape.
+
+## Data integrity
+Use sourced public references only for public geographic, infrastructure and inventory facts. A published equipment count does **not** establish powertrain, hourly availability, energy use or charging infrastructure. Vessel times and job assignments are not equivalent. Synthetic equipment/work/energy/savings values must be clearly marked. No Gulfport partnership, live telemetry, machinery control or guaranteed savings are claimed.
+
+## Demo fallback
+Open `demo/index.html` directly to show an **older, fully synthetic offline prototype** if integrated services are unavailable. Its math and data schema are separate from the new shared contract; do not describe it as the Python-optimizer integration.
