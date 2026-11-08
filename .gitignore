@@ -1,0 +1,16 @@
+# Environment variables (API keys)
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Compiled TypeScript
+dist/
+
+# Mac files
+.DS_Store
+
+# Logs
+*.log
