@@ -159,7 +159,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     </div>
     {error&&<div className="pc-error" role="alert">{error}</div>}
     <div className="pc-metrics">
-      <div><small>VESSEL CALLS IN VIEW</small><strong>{loading?"—":planningArrivals.length}</strong><span>Planned arrivals</span></div>
+      <div><small>VESSEL CALLS IN VIEW</small><strong>{loading?"—":comparisonReady?visibleSlots.filter(x=>x.start>=window.startMs&&x.start<window.endMs).length:planningArrivals.length}</strong><span>{comparisonReady?"Revised scheduled calls":"Planned arrivals"}</span></div>
       <div><small>BERTHS READY</small><strong>{snapshot?`${snapshot.berths.filter(x=>x.availableForPlanning).length}/${snapshot.berths.length}`:"—"}</strong><span>Recorded status</span></div>
       <div><small>EQUIPMENT READY</small><strong>{snapshot?`${snapshot.equipment.filter(x=>x.availableForPlanning).length}/${snapshot.equipment.length}`:"—"}</strong><span>Recorded availability</span></div>
       <div><small>{previewAssumptions?"DRAFT UNSCHEDULED":"VISIBLE OVERLAPS"}</small><strong>{previewAssumptions?runResult!.revised.unscheduled.length:overlaps.length}</strong><span>{previewAssumptions?"Proposed plan":"Indicative bookings only"}</span></div>
@@ -216,7 +216,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
         <p className="pc-optimizer-summary">Create a berth- and equipment-constrained schedule draft for the displayed calendar period. Nothing is dispatched or saved automatically.</p>
         <div className="pc-optimizer-panel">
           <div className="pc-panel-label">SCENARIO INPUTS</div>
-          <label className="pc-field-label">Required equipment per vessel<select value={equipmentKind} onChange={e=>{setEquipmentKind(e.target.value as SchedulingEquipmentType);resetResult();}}>
+          <label className="pc-field-label">Required equipment per vessel<select value={equipmentKind} onChange={e=>{setEquipmentKind(e.target.value as SchedulingEquipmentType);setOutageId("");resetResult();}}>
             {(["forklift","reach_stacker","mobile_crane","gantry_crane","terminal_tractor"] as SchedulingEquipmentType[]).map(v=><option key={v} value={v}>{v.replaceAll("_"," ")}</option>)}</select></label>
           <div className="pc-panel-label pc-outage-heading">CONGESTION TEST</div>
           <p className="pc-scenario-note">Move the earliest vessel calls in this calendar period to one shared arrival time. The original dates remain unchanged in Render.</p>
