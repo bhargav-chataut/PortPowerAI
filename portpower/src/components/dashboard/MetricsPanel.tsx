@@ -7,6 +7,12 @@ const operationsByPort: Record<string, Array<{ label: string; value: string; det
 		{ label: 'Crane Utilization', value: '84%', detail: '6 active cranes' },
 		{ label: 'Terminal Velocity', value: '32', detail: 'moves / hour' },
 	],
+	PortMiami: [
+		{ label: 'Vessel Calls', value: '24', detail: '5 in berth · synthetic demo' },
+		{ label: 'Container Flow', value: '8.7K', detail: '+3.4% today · synthetic demo' },
+		{ label: 'Crane Utilization', value: '78%', detail: '12 active cranes · synthetic demo' },
+		{ label: 'Terminal Velocity', value: '34', detail: 'moves / hour · synthetic demo' },
+	],
 	'Port of Los Angeles': [
 		{ label: 'Vessel Calls', value: '74', detail: '12 in berth' },
 		{ label: 'Container Flow', value: '28.5K', detail: '+5.1% today' },
