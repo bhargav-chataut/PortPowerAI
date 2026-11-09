@@ -118,7 +118,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   const rowConflict=(a:Slot,b:Slot)=>a.id!==b.id&&a.start<b.end&&b.start<a.end;
   const overlaps=mappedRows.flatMap(r=>r.bookings.filter((s,i)=>r.bookings.slice(i+1).some(t=>rowConflict(s,t))));
   const previewAssumptions=comparisonReady;
-  const resetResult=()=>{setRunResult(null);setRunScope(null);setSelected(null);};
+  const resetResult=()=>{setRunResult(null);if(!autoRun)setRunScope(null);setSelected(null);};
   const move=(step:number)=>{
     setCursor(date=>scale==="day"?dateShift(date,step):scale==="week"?dateShift(date,7*step):scale==="month"?dateMonthShift(date,step):dateYearShift(date,step));
     setSelected(null);
