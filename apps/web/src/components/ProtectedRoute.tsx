@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import ManagerWorkspace from "./ManagerWorkspace";
 
 import {
   getCurrentManager,
@@ -17,6 +18,7 @@ export default function ProtectedRoute({
   port,
   children,
 }: ProtectedRouteProps) {
+  const location = useLocation();
   const [manager, setManager] = useState<Manager | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,5 +68,6 @@ export default function ProtectedRoute({
     return <Navigate to={`/${manager.port}`} replace />;
   }
 
-  return <>{children}</>;
+  const isManagementPage = /\/(berths|equipment|arrivals)$/.test(location.pathname);
+  return isManagementPage ? <ManagerWorkspace port={port}>{children}</ManagerWorkspace> : <>{children}</>;
 }
