@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import VesselDrawer from "../components/VesselDrawer";
+import OverviewOperations from "../components/OverviewOperations";
 import VesselMap from "../components/VesselMap";
 import { MONITORING_REGIONS, isInMonitoringRegion } from "../utils/monitoringRegions";
 import { getVesselFreshness, formatLastReceived } from "../utils/vesselFreshness";
@@ -172,6 +173,8 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
             <div className="pp-stat-card"><div className="pp-stat-label">AGING POSITIONS <span>◷</span></div><div className="pp-stat-value">{loading ? "—" : agingCount}<span className="pp-stat-unit"> vessels</span></div><div className="pp-stat-caption"><span className="pp-mini-dot pp-amber" />Older AIS observations</div></div>
             <div className="pp-stat-card"><div className="pp-stat-label">STALE / UNKNOWN <span>⚑</span></div><div className="pp-stat-value">{loading ? "—" : staleCount}<span className="pp-stat-unit"> vessels</span></div><div className="pp-stat-caption"><span className="pp-mini-dot pp-red" />Check before relying on positions</div></div>
           </div>
+
+          {view === "map" && <OverviewOperations region={region} />}
 
           {view === "map" && (
           <div className="pp-workspace-grid">
