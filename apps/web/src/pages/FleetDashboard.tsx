@@ -94,7 +94,7 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
     { label: "Berths", to: `/${region}/berths`, active: false },
     { label: "Equipment", to: `/${region}/equipment`, active: false },
     { label: "Arrivals", to: `/${region}/arrivals`, active: false },
-    ...(region === "gulfport" ? [{ label: "Planning calendar", to: "/operations", active: false }] : []),
+    { label: "Planning calendar", to: `/${region}/planning`, active: false },
   ];
 
   async function handleLogout() {
@@ -192,7 +192,7 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
                   <Link to={`/${region}/berths`}><span className="pp-quick-icon">▥</span><span><strong>Berth management</strong><small>Inventory & availability</small></span><span>↗</span></Link>
                   <Link to={`/${region}/equipment`}><span className="pp-quick-icon">▤</span><span><strong>Equipment fleet</strong><small>Assets & maintenance</small></span><span>↗</span></Link>
                   <Link to={`/${region}/arrivals`}><span className="pp-quick-icon">↗</span><span><strong>Vessel arrivals</strong><small>Plan incoming calls</small></span><span>↗</span></Link>
-                  {region === "gulfport" && <Link to="/operations"><span className="pp-quick-icon">▦</span><span><strong>Planning workspace</strong><small>Fictional scenario planner</small></span><span>↗</span></Link>}
+                  <Link to={`/${region}/planning`}><span className="pp-quick-icon">▦</span><span><strong>Planning calendar</strong><small>Day · Week · Month · Year + optimizer</small></span><span>↗</span></Link>
                 </div>
               </section>
               <section className="pp-panel pp-intelligence-panel"><div className="pp-panel-kicker">OPERATIONS INTELLIGENCE</div><h2>Smarter decisions, next.</h2><p>We're connecting berth schedules, equipment availability and vessel arrivals to a constraint-aware optimizer.</p><span className="pp-coming-soon">OPTIMIZER · IN DEVELOPMENT</span></section>
