@@ -32,7 +32,7 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedParam = searchParams.get("vessel");
-  const selectedMmsi = selectedParam && /^\\d{9}$/.test(selectedParam) ? Number(selectedParam) : null;
+  const selectedMmsi = selectedParam && /^\d{9}$/.test(selectedParam) ? Number(selectedParam) : null;
   const port = MONITORING_REGIONS[region];
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const selectedVessel = selectedMmsi == null ? null : vessels.find(v => v.mmsi === selectedMmsi) ?? null;
