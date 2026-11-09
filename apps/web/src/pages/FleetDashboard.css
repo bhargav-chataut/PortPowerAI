@@ -137,3 +137,9 @@
 .pp-managed-content .equipment-page { padding: 28px; }
 .pp-managed-content :focus-visible { outline: 2px solid #0c958c; outline-offset: 2px; }
 @media (max-width: 820px) { .pp-managed-content { padding: 18px; }.pp-managed-content > main { min-height: calc(100vh - 170px); }.pp-managed-content .berth-page, .pp-managed-content .equipment-page { padding: 18px; } }
+
+/* Dedicated vessel directory introduction */
+.pp-list-intro { display:flex; align-items:center; gap:17px; padding:19px 22px; background:linear-gradient(110deg,#102b38,#102137); border:1px solid #28505a; border-radius:12px; margin-bottom:19px; }
+.pp-list-intro-icon { color:#56e9d5; display:grid; place-items:center; font-size:23px; border-radius:11px; background:#19414c; width:48px; height:48px; flex-shrink:0; }
+.pp-list-intro strong { display:block; font-size:16px; color:#effbff; margin-bottom:5px; }
+.pp-list-intro p { font-size:12px; color:#9ab4c6; margin:0; line-height:1.6; }
