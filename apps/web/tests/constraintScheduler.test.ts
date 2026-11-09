@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { compareScenario } from "../src/services/constraintScheduler.ts";
+import { planFromRecords } from "../src/services/constraintScheduler.ts";
 import type { SchedulingInputs } from "../../../packages/core/src/types.ts";
 
-const day = (date: number) => `2026-12-${String(date).padStart(2,"0")}T13:00:00.000Z`;
-function fixture(count = 4): SchedulingInputs {
+const day = (date:number,hour=13) => `2026-12-${String(date).padStart(2,"0")}T${String(hour).padStart(2,"0")}:00:00.000Z`;
+function fixture(count=4):SchedulingInputs {
   return {
     schemaVersion:"scheduling-inputs-1.0",source:"manager-planning-records",
     port:{id:"1",code:"miami"},units:{dimensions:"m",equipmentCapacity:"tonnes",duration:"minutes",timestamps:"UTC ISO 8601"},
@@ -14,49 +14,55 @@ function fixture(count = 4): SchedulingInputs {
     assumptions:[],issues:[],readyForScheduling:true,limitations:[]
   };
 }
-const settings = {
-  equipmentType:"forklift" as const,machinesPerCall:2,congestionCount:4,
-  congestionStartUtc:day(10),outageEquipmentId:"1",
-  outageStartUtc:day(10),outageEndUtc:"2026-12-10T21:00:00.000Z",
+const settings={
+  equipmentType:"forklift" as const,machinesPerCall:2,
   horizonStartUtc:"2026-12-01T05:00:00.000Z",
   horizonEndUtc:"2027-01-01T05:00:00.000Z"
 };
 
-test("congestion and a timed outage increase wait versus original arrivals",()=>{
-  const result=compareScenario(fixture(),settings);
-  assert.equal(result.baseline.metrics.scheduledCount,4);
-  assert.equal(result.baseline.metrics.totalWaitingMinutes,0);
-  assert.equal(result.revised.metrics.scheduledCount,4);
-  assert.ok(result.revised.metrics.totalWaitingMinutes>0);
-  assert.ok(result.changes.some(c=>c.deltaMinutes!==null&&c.deltaMinutes>0));
+test("uses recorded ETAs without moving arrivals to an artificial congestion day",()=>{
+  const result=planFromRecords(fixture(),settings);
+  assert.equal(result.metrics.scheduledCount,4);
+  assert.equal(result.metrics.totalWaitingMinutes,0);
+  for(const booking of result.assignments)assert.equal(booking.serviceStartUtc,booking.plannedEtaUtc);
 });
 
-test("revised draft never double-books a berth or machine",()=>{
-  const {revised}=compareScenario(fixture(),settings);
-  for(let i=0;i<revised.assignments.length;i++)for(let j=i+1;j<revised.assignments.length;j++){
-    const a=revised.assignments[i],b=revised.assignments[j];
-    const intersects=Date.parse(a.serviceStartUtc)<Date.parse(b.completionTimeUtc)&&Date.parse(b.serviceStartUtc)<Date.parse(a.completionTimeUtc);
-    if(intersects){
+test("manager-marked unavailable equipment is excluded",()=>{
+  const inputs=fixture();
+  inputs.equipment=inputs.equipment.map(e=>e.id==="1"?{...e,status:"maintenance" as const,availableForPlanning:false}:e);
+  const result=planFromRecords(inputs,settings);
+  assert.equal(result.metrics.scheduledCount,4);
+  assert.ok(result.assignments.every(a=>!a.equipmentIds.includes("1")));
+});
+
+test("insufficient available equipment leaves calls unscheduled",()=>{
+  const inputs=fixture();
+  inputs.equipment=inputs.equipment.map((e,i)=>i===0?e:{...e,status:"out_of_service" as const,availableForPlanning:false});
+  const result=planFromRecords(inputs,settings);
+  assert.equal(result.metrics.scheduledCount,0);
+  assert.equal(result.metrics.unscheduledCount,4);
+  assert.match(result.unscheduled[0].reason,/only 1 currently marked Available/);
+});
+
+test("recorded same-day arrivals create delays without changing ETA",()=>{
+  const inputs=fixture();
+  inputs.arrivals=inputs.arrivals.map(a=>({...a,plannedEta:day(10)}));
+  const result=planFromRecords(inputs,settings);
+  assert.equal(result.metrics.scheduledCount,4);
+  assert.ok(result.metrics.delayedCount>0);
+  assert.ok(result.assignments.some(a=>a.waitingMinutes>0));
+  for(const a of result.assignments)assert.equal(a.plannedEtaUtc,day(10));
+});
+
+test("no concurrent berth or equipment double booking",()=>{
+  const inputs=fixture();
+  inputs.arrivals=inputs.arrivals.map(a=>({...a,plannedEta:day(10)}));
+  const {assignments}=planFromRecords(inputs,settings);
+  for(let i=0;i<assignments.length;i++)for(let j=i+1;j<assignments.length;j++){
+    const a=assignments[i],b=assignments[j];
+    if(Date.parse(a.serviceStartUtc)<Date.parse(b.completionTimeUtc)&&Date.parse(b.serviceStartUtc)<Date.parse(a.completionTimeUtc)){
       assert.notEqual(a.berthId,b.berthId);
-      assert.equal(a.equipmentIds.some(x=>b.equipmentIds.includes(x)),false);
+      assert.equal(a.equipmentIds.some(id=>b.equipmentIds.includes(id)),false);
     }
   }
-});
-
-test("outage window blocks selected machine until its release",()=>{
-  const result=compareScenario(fixture(),settings);
-  const end=Date.parse(settings.outageEndUtc),start=Date.parse(settings.outageStartUtc);
-  for(const booking of result.revised.assignments.filter(x=>x.equipmentIds.includes(settings.outageEquipmentId))){
-    assert.ok(Date.parse(booking.completionTimeUtc)<=start||Date.parse(booking.serviceStartUtc)>=end);
-  }
-});
-
-test("scarce resources produce unscheduled calls, not fictional allocations",()=>{
-  const congested=fixture();
-  congested.arrivals=congested.arrivals.map(a=>({...a,plannedEta:day(10)}));
-  const result=compareScenario(congested,{
-    ...settings,machinesPerCall:4,horizonStartUtc:"2026-12-10T05:00:00.000Z",
-    horizonEndUtc:"2026-12-11T05:00:00.000Z",congestionCount:4
-  });
-  assert.ok(result.revised.unscheduled.length>0);
 });
