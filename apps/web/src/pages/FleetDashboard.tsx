@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import VesselDrawer from "../components/VesselDrawer";
 import VesselMap from "../components/VesselMap";
 import { MONITORING_REGIONS, isInMonitoringRegion } from "../utils/monitoringRegions";
 import { getVesselFreshness, formatLastReceived } from "../utils/vesselFreshness";
@@ -29,8 +30,12 @@ export default function FleetDashboard({ region, view = "map" }: FleetDashboardP
 
 function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedParam = searchParams.get("vessel");
+  const selectedMmsi = selectedParam && /^\\d{9}$/.test(selectedParam) ? Number(selectedParam) : null;
   const port = MONITORING_REGIONS[region];
   const [vessels, setVessels] = useState<Vessel[]>([]);
+  const selectedVessel = selectedMmsi == null ? null : vessels.find(v => v.mmsi === selectedMmsi) ?? null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -106,7 +111,11 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
   }
 
   function openVessel(mmsi: number) {
-    navigate(`/vessels/${mmsi}`);
+    setSearchParams(previous => { const next = new URLSearchParams(previous); next.set("vessel", String(mmsi)); return next; });
+  }
+
+  function closeVessel() {
+    setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete("vessel"); return next; });
   }
 
   return (
@@ -169,7 +178,7 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
             <section className="pp-panel pp-map-panel">
               <div className="pp-panel-header"><div><div className="pp-panel-kicker">MONITORING</div><h2>Live vessel map</h2></div><span className="pp-panel-tag">{port.name}</span></div>
               <div className="pp-map-wrap">
-                {loading ? <div className="pp-empty-map">Connecting to live vessel feed…</div> : <VesselMap vessels={vessels} selectedMmsi={null} onSelectVessel={openVessel} historyPositions={[]} center={port.center} />}
+                {loading ? <div className="pp-empty-map">Connecting to live vessel feed…</div> : <VesselMap vessels={vessels} selectedMmsi={selectedMmsi} onSelectVessel={openVessel} historyPositions={[]} center={port.center} />}
               </div>
               <div className="pp-map-caption"><span><span className="pp-mini-dot pp-green" /> AIS observation layer</span><span>Click a vessel to inspect →</span></div>
             </section>
@@ -204,6 +213,7 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
           <footer className="pp-footer">AIS coordinates are observed positions, not guaranteed live locations. Operational schedules are separately modeled and must not be inferred from AIS.</footer>
         </div>
       </main>
+      {selectedMmsi != null && <VesselDrawer key={selectedMmsi} mmsi={selectedMmsi} vessel={selectedVessel} onClose={closeVessel} />}
     </div>
   );
 }
