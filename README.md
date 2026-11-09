@@ -1,5 +1,20 @@
 # PortPowerAI — Offline Demo MVP
 
+## Manager berth management
+
+Signed-in managers can open `/gulfport/berths` or `/miami/berths`, or choose
+**Berths** from their dashboard. The page displays the existing assigned-port
+`manager_berths` records (currently three per port) and lets managers save status,
+maximum vessel length and maximum draft in metres. Blank capacity means unknown.
+Each berth saves separately through `GET /api/berths` and `PATCH /api/berths/:id`.
+Session ownership is enforced on the server. No schema migration or seed is needed.
+
+Run `npm test` and `npm run build` in `apps/web` and `services/vessel-api`.
+The optional backend check `OPERATIONS_POSTGRES_TEST=0 BERTH_POSTGRES_TEST=1 npm test`
+tests real PostgreSQL berth updates using temporary records and existing active
+Gulfport/Miami manager assignments; its transaction is rolled back without changing
+saved inventory. Existing operations-migration tests are separate.
+
 ## Fictional port operations planner
 
 The React app now provides `/operations`, alongside the existing `/gulfport`,

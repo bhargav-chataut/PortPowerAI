@@ -1,0 +1,26 @@
+.berth-page { max-width: 1400px; margin: auto; padding: 24px; }
+.berth-page nav { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 24px; }
+.berth-page nav a { color: var(--accent); }
+.berth-page nav a[aria-current] { font-weight: 700; }
+.berth-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.berth-card { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: var(--surface); }
+.berth-card header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.berth-card header p { margin: 0 0 8px; font-size: 13px; }
+.berth-card h2 { font-size: 21px; }
+.berth-card fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.berth-card label { display: block; margin: 16px 0 6px; font-weight: 600; }
+.berth-card input, .berth-card select, .berth-page button { font: inherit; padding: 10px; color: var(--text-h); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+.berth-card input, .berth-card select { width: 100%; }
+.berth-card select { text-transform: capitalize; }
+.berth-help { font-size: 13px; margin-top: 12px; }
+.berth-card button { background: #0369a1; color: white; cursor: pointer; }
+.berth-page button:disabled { opacity: .6; cursor: default; }
+.berth-page :focus-visible { outline: 3px solid #38bdf8; outline-offset: 2px; }
+.berth-status { padding: 5px 10px; border-radius: 20px; font-size: 13px; text-transform: capitalize; }
+.berth-status-available { background: #dcfce7; color: #166534; }
+.berth-status-occupied { background: #dbeafe; color: #1e40af; }
+.berth-status-maintenance { background: #fef3c7; color: #92400e; }
+.berth-status-closed { background: #fee2e2; color: #991b1b; }
+.berth-error { color: #dc2626; margin-top: 12px; }
+@media (max-width: 1000px) { .berth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 650px) { .berth-grid { grid-template-columns: 1fr; } .berth-page { padding: 16px; } }

@@ -1,5 +1,55 @@
 # PortPower AI — Shared Data & API Contracts (v1 proposal)
 
+## SCHED-01 — scheduling input contract proposal (additive)
+
+Introduce independent `SchedulingInputs` interfaces in `packages/core/src/types.ts`
+and a deterministic runtime parser/builder in `schedulingInputs.ts`; existing
+`OperatingScenario` and energy proposals are unchanged.
+`GET /api/optimization/inputs` derives the active manager's port from the session
+and reads only `manager_berths`, `manager_equipment`, `manager_vessel_arrivals`.
+It returns a `scheduling-inputs-1.0` inspection snapshot, with string BIGINT IDs,
+explicit units, nullable unknown dimensions/capabilities, original resource statuses,
+normalized UTC ETAs, service duration minutes, provenance, issues and readiness.
+Cancelled/completed calls are excluded. No AIS records are loaded or joined.
+
+Valid but incomplete planning records return 200 with `readyForScheduling: false`
+and actionable issues; corrupt records/references return 422 with structured issues.
+Authentication: 401; absent/inactive/unsupported manager assignment: 403;
+query parameters (including port overrides): 400; database failure: sanitized 503.
+The request reads a repeatable-read, read-only transaction. Response caching is disabled.
+
+Readiness covers only minimum input completeness for duration-based planning,
+not a feasible schedule or verified physical compatibility. Known service hours
+are converted to minutes without estimating productivity. Optional trusted server
+configuration may supply `simulatedServiceDurations: [{arrivalId, minutes, note}]`
+only when the stored duration is null; applied values are labeled simulated.
+No default duration, equipment rate, capacity, compatibility or release time is invented.
+Availability means the recorded status at inspection, not guaranteed shift availability.
+
+## BERTH-01 — manager berth management
+
+`GET /api/berths` returns `{berths: [...]}` from the active manager's assigned
+port, ordered by berth number. Each berth has `id`, `berth_number`, `name`,
+`status`, `max_length_m`, and `max_draft_m`. PostgreSQL BIGINT IDs are preserved
+as strings; NUMERIC capacities may be strings or null in responses.
+
+`PATCH /api/berths/:id` accepts a nonempty subset of `status`, `max_length_m`,
+and `max_draft_m` and returns `{berth: ...}`. Status is exactly
+`available | occupied | maintenance | closed`. Known capacities are JSON numbers
+in metres, positive with at most two decimal places; null means unknown.
+Storage limits are 99,999,999.99 m for length and 999,999.99 m for draft, matching
+existing NUMERIC columns; these are database limits, not asserted port dimensions.
+Omitted fields stay unchanged. Unknown payload fields, including `port_id`, are
+rejected; a supplied query port cannot override session ownership.
+
+Both endpoints require the existing authenticated session and a current active
+`port_manager` assignment. Updates filter by ID and that server-derived port.
+Anonymous: 401; inactive/unassigned manager: 403; malformed input: 400;
+missing or another port's berth: 404; storage error: sanitized 500.
+No migrations or new berths are created. `/gulfport/berths` and `/miami/berths`
+use the existing matching-port client guard and render actual stored inventory.
+These records are planner inputs/demo assumptions, not verified port-authority data.
+
 ## OPS-01 contract proposal (additive)
 
 The operations-only contract is introduced in `packages/core/src/types.ts`;

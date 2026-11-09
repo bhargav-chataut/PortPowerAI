@@ -2,6 +2,17 @@
 
 ## Owners
 
+### SCHED-01 — authenticated scheduling input snapshot
+User-assigned scope: additive shared scheduling inspection types/validation,
+server-side read-only loader and optimization inspection route, synthetic tests,
+and documentation. Reuse manager planning tables; no migrations, AIS linkage,
+optimizer or frontend rewrite.
+
+### BERTH-01 — Manager berth management
+User-assigned scope: `services/vessel-api` berth routes/tests, `apps/web` berth
+page/client/routes/navigation/tests, and API documentation. Reuse `manager_berths`
+and existing sessions. No schema migration or simulation contract changes.
+
 ### OPS-02 — Separate operations database tables
 User-assigned backend scope: additive migration, scenario repository, database
 integration tests, and docs. Preserve v1 API/types and saved scenarios while
