@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { PortCode } from "../services/authApi";
 import { logout } from "../services/authApi";
 import "../pages/FleetDashboard.css";
+import "./ManagementTheme.css";
 
 /** Keep the same navigation geometry as the live AIS dashboard on manager pages. */
 export default function ManagerWorkspace({ port, children }: { port: PortCode; children: React.ReactNode }) {
