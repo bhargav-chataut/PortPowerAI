@@ -155,6 +155,8 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
           {logoutError && <div className="pp-alert" role="alert">{logoutError}</div>}
           {error && <div className="pp-alert" role="alert">Unable to refresh AIS observations: {error}. Showing last available data.</div>}
 
+          {view === "list" && <div className="pp-list-intro"><span className="pp-list-intro-icon">◉</span><div><strong>Vessel directory</strong><p>Search and inspect every vessel observation in this monitoring region. AIS freshness reflects when positions were received—not guaranteed current locations.</p></div></div>}
+
           <div className="pp-stat-grid">
             <div className="pp-stat-card"><div className="pp-stat-label">TRACKED VESSELS <span>◉</span></div><div className="pp-stat-value">{loading ? "—" : vessels.length}<span className="pp-stat-unit"> vessels</span></div><div className="pp-stat-caption">Within monitored area</div></div>
             <div className="pp-stat-card"><div className="pp-stat-label">FRESH POSITIONS <span className="pp-accent-icon">↗</span></div><div className="pp-stat-value">{loading ? "—" : recentCount}<span className="pp-stat-unit"> vessels</span></div><div className="pp-stat-caption"><span className="pp-mini-dot pp-green" />Recently received AIS</div></div>
@@ -162,6 +164,7 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
             <div className="pp-stat-card"><div className="pp-stat-label">STALE / UNKNOWN <span>⚑</span></div><div className="pp-stat-value">{loading ? "—" : staleCount}<span className="pp-stat-unit"> vessels</span></div><div className="pp-stat-caption"><span className="pp-mini-dot pp-red" />Check before relying on positions</div></div>
           </div>
 
+          {view === "map" && (
           <div className="pp-workspace-grid">
             <section className="pp-panel pp-map-panel">
               <div className="pp-panel-header"><div><div className="pp-panel-kicker">MONITORING</div><h2>Live vessel map</h2></div><span className="pp-panel-tag">{port.name}</span></div>
@@ -184,10 +187,12 @@ function RegionalDashboard({ region, view = "map" }: FleetDashboardProps) {
             </div>
           </div>
 
+          )}
+
           <section className="pp-panel pp-table-panel">
             <div className="pp-panel-header pp-table-header">
-              <div><div className="pp-panel-kicker">VESSEL ACTIVITY</div><h2>Tracked vessel feed <span className="pp-count-pill">{filteredVessels.length}</span></h2></div>
-              <div className="pp-table-actions"><input aria-label="Search vessels" type="search" placeholder="Search vessel or MMSI…" value={search} onChange={e => setSearch(e.target.value)} /><Link to={view === "map" ? `/${region}/vessels` : `/${region}`}>{view === "map" ? "View all vessels ↗" : "Map view ↗"}</Link></div>
+              <div><div className="pp-panel-kicker">{view === "map" ? "VESSEL ACTIVITY" : "LIVE MONITORING DIRECTORY"}</div><h2>{view === "map" ? "Tracked vessel feed" : "All tracked vessels"} <span className="pp-count-pill">{filteredVessels.length}</span></h2></div>
+              <div className="pp-table-actions"><input aria-label="Search vessels" type="search" placeholder="Search vessel or MMSI…" value={search} onChange={e => setSearch(e.target.value)} /><Link to={view === "map" ? `/${region}/vessels` : `/${region}`}>{view === "map" ? "View all vessels ↗" : "Return to overview ↗"}</Link></div>
             </div>
             <div className="pp-table-scroll"><table className="pp-vessel-table"><thead><tr><th>VESSEL</th><th>MMSI</th><th>SPEED</th><th>POSITION STATUS</th><th>LAST RECEIVED</th><th /></tr></thead><tbody>
               {filteredVessels.slice(0, view === "map" ? 6 : undefined).map(vessel => {
