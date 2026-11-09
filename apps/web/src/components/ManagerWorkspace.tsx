@@ -20,7 +20,7 @@ export default function ManagerWorkspace({ port, children }: { port: PortCode; c
     { label: "Berths", symbol: "▥", to: `/${port}/berths` },
     { label: "Equipment", symbol: "▤", to: `/${port}/equipment` },
     { label: "Arrivals", symbol: "↗", to: `/${port}/arrivals` },
-    ...(port === "gulfport" ? [{ label: "Planning calendar", symbol: "▦", to: "/operations" }] : []),
+    { label: "Planning calendar", symbol: "▦", to: `/${port}/planning` },
   ];
   const active = links.find(link => link.to === location.pathname);
   async function signOut() {
