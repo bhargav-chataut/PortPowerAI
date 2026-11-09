@@ -94,7 +94,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   const allArrivals=snapshot?.arrivals??[];
   const slots:Slot[]=useMemo(()=>{
     if(!snapshot)return [];
-    if(runResult && runScope===`${window.start}:${window.end}`)return runResult.revised.assignments.map(a=>{
+    if(runResult)return runResult.revised.assignments.map(a=>{
       const arrival=snapshot.arrivals.find(x=>x.id===a.arrivalId);
       return {id:a.arrivalId,name:arrival?.vesselName??a.mmsi,berthId:a.berthId,start:Date.parse(a.serviceStartUtc),end:Date.parse(a.completionTimeUtc),equipmentIds:a.equipmentIds,simulated:true,note:"Draft FCFS allocation using explicit simulation assumptions"};
     });
@@ -105,11 +105,12 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     }));
   },[snapshot,runResult,runScope,window.start,window.end,allArrivals]);
   const visibleSlots=slots.filter(s=>s.end>window.startMs&&s.start<window.endMs);
-  const comparisonReady=runResult!==null && runScope===`${window.start}:${window.end}`;
+  const comparisonReady=runResult!==null && runScope!==null && window.startMs < zonedMidnight(runScope.split(":")[1]) && window.endMs > zonedMidnight(runScope.split(":")[0]);
   const movedIds=new Set(comparisonReady?runResult.changes.filter(c=>c.reason!=="Unchanged").map(c=>c.arrivalId):[]);
   const resourceRows=laneMode==="berths"?(snapshot?.berths??[]).map(b=>({id:b.id,name:b.name,detail:b.status,active:b.availableForPlanning})):
     (snapshot?.equipment??[]).map(e=>({id:e.id,name:e.code,detail:e.type.replaceAll("_"," "),active:e.availableForPlanning}));
-  const mappedRows=resourceRows.map(resource=>({...resource,bookings:visibleSlots.filter(s=>laneMode==="berths"?s.berthId===resource.id:s.equipmentIds.includes(resource.id))}));
+  const baselineSlots:Slot[]=runResult?.baseline.assignments.map(a=>({id:a.arrivalId,name:snapshot?.arrivals.find(x=>x.id===a.arrivalId)?.vesselName??a.mmsi,berthId:a.berthId,start:Date.parse(a.serviceStartUtc),end:Date.parse(a.completionTimeUtc),equipmentIds:a.equipmentIds,simulated:false,note:"Baseline allocation before scenario"}))??[];
+  const mappedRows=resourceRows.map(resource=>({...resource,bookings:visibleSlots.filter(s=>laneMode==="berths"?s.berthId===resource.id:s.equipmentIds.includes(resource.id)),baselineBookings:comparisonReady?baselineSlots.filter(s=>s.end>window.startMs&&s.start<window.endMs&&(laneMode==="berths"?s.berthId===resource.id:s.equipmentIds.includes(resource.id))):[]}));
   const unassigned=visibleSlots.filter(s=>laneMode==="berths"&&!s.berthId);
   const columns=selectCols(scale,window.start);
   const rowConflict=(a:Slot,b:Slot)=>a.id!==b.id&&a.start<b.end&&b.start<a.end;
@@ -118,9 +119,9 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   const resetResult=()=>{setRunResult(null);setRunScope(null);setSelected(null);};
   const move=(step:number)=>{
     setCursor(date=>scale==="day"?dateShift(date,step):scale==="week"?dateShift(date,7*step):scale==="month"?dateMonthShift(date,step):dateYearShift(date,step));
-    resetResult();
+    setSelected(null);
   };
-  const changeScale=(value:Scale)=>{setScale(value);resetResult();};
+  const changeScale=(value:Scale)=>{setScale(value);setSelected(null);};
 
   function runDraft(){
     if(!snapshot || !assume)return;
@@ -153,7 +154,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
       <div className="pc-meta"><span className="pc-demo">MANAGER PLANS · NOT AIS</span><button className="pc-refresh" type="button" onClick={()=>setReload(n=>n+1)}>↻ Refresh data</button></div>
     </div>
     <div className="pc-toolbar">
-      <div className="pc-date-nav"><button aria-label="Previous period" onClick={()=>move(-1)}>‹</button><button onClick={()=>{setCursor("2026-12-01");resetResult();}}>Dec 2026</button><button aria-label="Next period" onClick={()=>move(1)}>›</button><strong>{displayRange}</strong></div>
+      <div className="pc-date-nav"><button aria-label="Previous period" onClick={()=>move(-1)}>‹</button><button onClick={()=>{setCursor("2026-12-01");setSelected(null);}}>Dec 2026</button><button aria-label="Next period" onClick={()=>move(1)}>›</button><strong>{displayRange}</strong></div>
       <div className="pc-scale" role="group" aria-label="Calendar view">{(["day","week","month","year"] as Scale[]).map(v=><button key={v} className={scale===v?"active":""} onClick={()=>changeScale(v)} aria-pressed={scale===v}>{v[0].toUpperCase()+v.slice(1)}</button>)}</div>
     </div>
     {error&&<div className="pc-error" role="alert">{error}</div>}
@@ -166,23 +167,23 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     <div className="pc-board">
       <div className="pc-main-board">
         <div className="pc-board-header"><div><div className="pc-kicker">RESOURCE BOARD</div><h2>Traffic & capacity</h2><p>Air-traffic-style lanes · construction-style resource timeline</p></div><div className="pc-mode"><button className={laneMode==="berths"?"active":""} onClick={()=>setLaneMode("berths")}>Berths</button><button className={laneMode==="equipment"?"active":""} onClick={()=>setLaneMode("equipment")}>Equipment</button></div></div>
-        <div className="pc-legend"><span><i className="pc-swatch incoming"/>Indicative window</span><span><i className="pc-swatch scheduled"/>Optimizer draft</span><span><i className="pc-swatch restricted"/>Restricted</span></div>
+        <div className="pc-legend"><span><i className="pc-swatch incoming"/>Indicative window</span><span><i className="pc-swatch scheduled"/>Revised draft</span><span><i className="pc-swatch baseline"/>Original plan</span><span><i className="pc-swatch restricted"/>Restricted</span></div>
         {scale === "month" ? <div className="pc-month-grid">
           {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=><div className="pc-weekday" key={d}>{d}</div>)}
           {Array.from({length:(weekday(window.start)+6)%7},(_,i)=><div className="pc-blank-day" key={`blank-${i}`}/>)}
           {columns.map(c=>{
-            const calls=planningArrivals.filter(a=>parts(new Date(a.plannedEta))===c.key);
-            return <button type="button" className={`pc-day-cell ${calls.length?"pc-day-active":""}`} key={c.key} onClick={()=>{setCursor(c.key);setScale("day");resetResult();}}>
+            const calls=comparisonReady?visibleSlots.filter(s=>parts(new Date(s.start))===c.key):planningArrivals.filter(a=>parts(new Date(a.plannedEta))===c.key);
+            return <button type="button" className={`pc-day-cell ${calls.length?"pc-day-active":""}`} key={c.key} onClick={()=>{setCursor(c.key);setScale("day");setSelected(null);}}>
               <span className="pc-day-number">{c.label}</span><small>{calls.length? `${calls.length} vessel${calls.length===1?"":"s"}` : "—"}</small>
-              {calls.slice(0,2).map(a=><span className="pc-day-event" key={a.id}>{a.vesselName??a.mmsi}</span>)}
+              {calls.slice(0,2).map(a=><span className="pc-day-event" key={a.id}>{"name" in a ? a.name : a.vesselName??a.mmsi}</span>)}
               {calls.length>2&&<span className="pc-day-more">+{calls.length-2} more</span>}
             </button>;
           })}
         </div> : scale === "year" ? <div className="pc-year-grid">
           {columns.map((c,i)=>{
             const start=ymd(Number(window.start.slice(0,4)),i+1,1);
-            const count=allArrivals.filter(a=>parts(new Date(a.plannedEta)).startsWith(start.slice(0,7))).length;
-            return <button type="button" className="pc-year-cell" key={c.key} onClick={()=>{setCursor(start);setScale("month");resetResult();}}>
+            const count=comparisonReady?visibleSlots.filter(s=>parts(new Date(s.start)).startsWith(start.slice(0,7))).length:allArrivals.filter(a=>parts(new Date(a.plannedEta)).startsWith(start.slice(0,7))).length;
+            return <button type="button" className="pc-year-cell" key={c.key} onClick={()=>{setCursor(start);setScale("month");setSelected(null);}}>
               <span className="pc-year-month">{c.label}</span><strong>{count}</strong><small>planned calls</small>
               <span className="pc-year-meter"><span style={{width:`${Math.min(100,count/20*100)}%`}}/></span>
             </button>;
@@ -194,6 +195,11 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
             <div className="pc-track">
               {columns.map(c=><span className="pc-gridline" key={c.key}/>)}
               {!row.active&&<span className="pc-track-disabled"/>}
+              {row.baselineBookings.map(s=>{
+                const left=rowOffset(Math.max(s.start,window.startMs),window.startMs,window.endMs);
+                const right=rowOffset(Math.min(s.end,window.endMs),window.startMs,window.endMs);
+                return <span key={`baseline-${s.id}`} title={`Before: ${s.name} ${displayDate(s.start)} ${clock(s.start)}`} className="pc-baseline-ghost" style={{left:`${left}%`,width:`${Math.max(.5,right-left)}%`}}/>;
+              })}
               {row.bookings.map(s=>{
                 const left=rowOffset(Math.max(s.start,window.startMs),window.startMs,window.endMs);
                 const right=rowOffset(Math.min(s.end,window.endMs),window.startMs,window.endMs);
