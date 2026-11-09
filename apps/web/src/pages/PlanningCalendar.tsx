@@ -157,7 +157,27 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
       <div className="pc-main-board">
         <div className="pc-board-header"><div><div className="pc-kicker">RESOURCE BOARD</div><h2>Traffic & capacity</h2><p>Air-traffic-style lanes · construction-style resource timeline</p></div><div className="pc-mode"><button className={laneMode==="berths"?"active":""} onClick={()=>setLaneMode("berths")}>Berths</button><button className={laneMode==="equipment"?"active":""} onClick={()=>setLaneMode("equipment")}>Equipment</button></div></div>
         <div className="pc-legend"><span><i className="pc-swatch incoming"/>Indicative window</span><span><i className="pc-swatch scheduled"/>Optimizer draft</span><span><i className="pc-swatch restricted"/>Restricted</span></div>
-        <div className="pc-timeline-scroll"><div className="pc-timeline">
+        {scale === "month" ? <div className="pc-month-grid">
+          {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=><div className="pc-weekday" key={d}>{d}</div>)}
+          {Array.from({length:(weekday(window.start)+6)%7},(_,i)=><div className="pc-blank-day" key={`blank-${i}`}/>)}
+          {columns.map(c=>{
+            const calls=planningArrivals.filter(a=>parts(new Date(a.plannedEta))===c.key);
+            return <button type="button" className={`pc-day-cell ${calls.length?"pc-day-active":""}`} key={c.key} onClick={()=>{setCursor(c.key);setScale("day");resetResult();}}>
+              <span className="pc-day-number">{c.label}</span><small>{calls.length? `${calls.length} vessel${calls.length===1?"":"s"}` : "—"}</small>
+              {calls.slice(0,2).map(a=><span className="pc-day-event" key={a.id}>{a.vesselName??a.mmsi}</span>)}
+              {calls.length>2&&<span className="pc-day-more">+${calls.length-2} more</span>}
+            </button>;
+          })}
+        </div> : scale === "year" ? <div className="pc-year-grid">
+          {columns.map((c,i)=>{
+            const start=ymd(Number(window.start.slice(0,4)),i+1,1);
+            const count=allArrivals.filter(a=>parts(new Date(a.plannedEta)).startsWith(start.slice(0,7))).length;
+            return <button type="button" className="pc-year-cell" key={c.key} onClick={()=>{setCursor(start);setScale("month");resetResult();}}>
+              <span className="pc-year-month">{c.label}</span><strong>{count}</strong><small>planned calls</small>
+              <span className="pc-year-meter"><span style={{width:`${Math.min(100,count/20*100)}%`}}/></span>
+            </button>;
+          })}
+        </div> : <div className="pc-timeline-scroll"><div className="pc-timeline">
           <div className="pc-timeline-label pc-timeline-axis-title">RESOURCE / STATUS</div><div className="pc-axis">{columns.map(c=><div key={c.key}>{c.label}</div>)}</div>
           {loading?<div className="pc-timeline-message">Loading Render scheduling inputs…</div>:mappedRows.length===0?<div className="pc-timeline-message">No resources registered for this port.</div>:mappedRows.map(row=><div className="pc-lane" key={row.id}>
             <div className="pc-lane-label"><strong>{row.name}</strong><small className={row.active?"pc-state-ready":"pc-state-blocked"}>{row.detail}</small></div>
@@ -171,9 +191,9 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
               })}
             </div>
           </div>)}
-        </div></div>
+        </div></div>}
         {unassigned.length>0&&<div className="pc-unassigned">{unassigned.length} arrivals have no preferred berth. They do not appear in a berth lane until assigned.</div>}
-        <div className="pc-board-footnote">Timeline uses PortMiami local time (Eastern). Indicative bars use ETA + estimated service duration and are not confirmed berth assignments.</div>
+        <div className="pc-board-footnote">Timeline uses port-local Eastern time. Indicative bars use ETA + estimated service duration and are not confirmed berth assignments.</div>
       </div>
       <aside className="pc-optimizer">
         <div className="pc-optimizer-head"><span className="pc-ai-symbol">✦</span><div><div className="pc-kicker">SCHEDULING ENGINE</div><h2>Optimizer</h2></div><span className="pc-engine-tag">FCFS v1</span></div>
