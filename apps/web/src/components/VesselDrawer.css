@@ -1,0 +1,49 @@
+/* Contextual AIS inspector. Keeps the current port workspace visible. */
+.vd-overlay {position:fixed;inset:0;background:rgba(2,9,19,.44);border:0;z-index:49;cursor:default}
+.vd-drawer {position:fixed;right:0;top:0;bottom:0;width:min(450px,100vw);background:#0d1d30;color:#e9f5ff;border-left:1px solid #345067;z-index:50;display:flex;flex-direction:column;box-shadow:-16px 0 55px rgba(0,0,0,.37);animation:vd-enter .18s ease-out}
+.vd-drawer.vd-wide {width:min(860px,92vw)}
+@keyframes vd-enter {from {transform:translateX(16px);opacity:.8}to{transform:translateX(0);opacity:1}}
+.vd-header {padding:29px 27px 19px;display:flex;align-items:start;justify-content:space-between;gap:14px;border-bottom:1px solid #2b4155}
+.vd-header h2 {font-size:26px;letter-spacing:-.7px;color:#f3faff;margin:8px 0 4px}
+.vd-header span {font-size:12px;color:#9bb5c7}
+.vd-eyebrow,.vd-label {font-size:10px;font-weight:800;color:#51d9c6;letter-spacing:1.3px}
+.vd-close {display:grid;place-items:center;height:34px;width:34px;border:1px solid #35516a;background:#182e43;color:#d9eafa;border-radius:8px;cursor:pointer;font-size:15px}
+.vd-close:hover {background:#27506a}
+.vd-tabs {display:flex;padding:0 26px;border-bottom:1px solid #2b4155;gap:25px}
+.vd-tabs button {border:0;border-bottom:2px solid transparent;background:transparent;color:#9ab1c6;padding:18px 1px 14px;cursor:pointer;font-size:12px;font-weight:650}
+.vd-tabs button.vd-active {border-bottom-color:#40dcc6;color:#78ecdc}
+.vd-body {overflow-y:auto;overflow-x:hidden;flex:1;padding:27px;min-height:0}
+.vd-body h3 {color:#eff9ff;font-size:18px;margin:8px 0 15px}
+.vd-status {display:flex;gap:9px;align-items:center;text-transform:capitalize;margin:17px 0 25px;font-size:12px;color:#b8cdd9}
+.vd-status-dot {height:8px;width:8px;display:inline-block;border-radius:50%;background:#889bad}
+.vd-status-dot.vd-recent {background:#39d9b4}.vd-status-dot.vd-aging {background:#f0b456}.vd-status-dot.vd-stale {background:#e97780}
+.vd-summary {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:30px}
+.vd-summary>div,.vd-history-stats>div {background:#152b40;border:1px solid #304b60;border-radius:10px;padding:17px;min-width:0}
+.vd-summary small,.vd-history-stats small {display:block;color:#93acbf;font-size:10px;margin-bottom:7px}
+.vd-summary strong,.vd-history-stats strong {font-size:19px;color:#f0f9ff}
+.vd-facts {margin:13px 0 27px}
+.vd-facts>div {display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #273f52;font-size:12px}
+.vd-facts dt {color:#93aebf}
+.vd-facts dd {text-align:right;color:#f1f8ff;margin:0;overflow-wrap:anywhere}
+.vd-cta {background:#30d7c1;color:#083036;font-weight:800;border:none;width:100%;padding:13px 16px;border-radius:9px;cursor:pointer;display:flex;justify-content:space-between}
+.vd-cta:hover {background:#71ebda}
+.vd-note {color:#9bb7c6;font-size:12px;line-height:1.65}
+.vd-history-controls {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.vd-control-group {display:flex;align-items:center;gap:8px}
+.vd-control-group label {color:#aac3cf;font-size:11px}
+.vd-control-group select,.vd-control-group button {background:#172d41;color:#eef7ff;border:1px solid #355168;padding:9px;border-radius:7px;font-size:11px}
+.vd-control-group button {cursor:pointer}
+.vd-history-stats {display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:17px}
+.vd-history-stats strong {font-size:17px}
+.vd-history-map {border-radius:11px;overflow:hidden;border:1px solid #365069;margin-bottom:23px;background:#102235}
+.vd-history-map .leaflet-container {height:350px!important;min-height:350px!important;border-radius:0!important}
+.vd-empty {background:#132b3d;border:1px dashed #365268;color:#9db7c7;border-radius:10px;padding:28px;text-align:center;font-size:12px}
+.vd-table-scroll {overflow:auto;margin-top:12px}
+.vd-table-scroll table {border-collapse:collapse;width:100%;font-size:11px;background:transparent;white-space:nowrap}
+.vd-table-scroll th {background:#1a3449!important;color:#a2c3cd!important;font-size:10px;text-align:left;padding:12px}
+.vd-table-scroll td {padding:12px;border-bottom:1px solid #294355;color:#d8eaf5}
+.vd-arrival {background:#152b40;border:1px solid #2b455b;padding:16px;margin:13px 0;border-radius:10px}
+.vd-arrival strong {color:#f0faff;font-size:14px}
+.vd-error {color:#ffacb4;font-size:12px}
+.vd-footer {padding:15px 27px;border-top:1px solid #2b4155;color:#819dad;font-size:10px;line-height:1.6;background:#0d1a29}
+@media(max-width:650px){.vd-drawer,.vd-drawer.vd-wide{width:100vw}.vd-body{padding:19px}.vd-header{padding:20px}.vd-tabs{padding:0 19px}.vd-history-stats{grid-template-columns:1fr 1fr}.vd-history-stats>div:last-child{grid-column:1/-1}.vd-control-group{flex-wrap:wrap}}
