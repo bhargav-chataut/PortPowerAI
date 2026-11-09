@@ -15,6 +15,7 @@ import VesselDetailsPage from "./pages/VesselDetailsPage";
 import EquipmentManagementPage from "./pages/EquipmentManagementPage";
 import VesselArrivalsPage from "./pages/VesselArrivalsPage";
 import OperationsDashboard from "./pages/OperationsDashboard";
+import PlanningCalendar from "./pages/PlanningCalendar";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import BerthManagementPage from "./pages/BerthManagementPage";
@@ -140,6 +141,9 @@ ReactDOM.createRoot(
             </ProtectedRoute>
           }
         />
+
+        <Route path="/miami/planning" element={<ProtectedRoute port="miami"><PlanningCalendar port="miami" /></ProtectedRoute>} />
+        <Route path="/gulfport/planning" element={<ProtectedRoute port="gulfport"><PlanningCalendar port="gulfport" /></ProtectedRoute>} />
 
         {/* ========================= */}
         {/* OPERATIONS ROUTES */}
