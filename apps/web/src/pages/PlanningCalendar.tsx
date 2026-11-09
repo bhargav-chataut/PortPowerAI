@@ -64,6 +64,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   const [runResult,setRunResult] = useState<ScenarioComparison|null>(null);
   const [runScope,setRunScope] = useState<string|null>(null);
   const [assume,setAssume] = useState(false);
+  const [autoRun,setAutoRun] = useState(false);
   const [equipmentKind,setEquipmentKind] = useState<SchedulingEquipmentType>("forklift");
   const [outageId,setOutageId] = useState("");
   const [outageDay,setOutageDay] = useState("2026-12-10");
@@ -123,7 +124,11 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   };
   const changeScale=(value:Scale)=>{setScale(value);setSelected(null);};
 
-  function runDraft(){
+  useEffect(()=>{
+    if(autoRun && snapshot && assume)runDraft(true);
+  },[autoRun,snapshot,assume,equipmentKind,machinesPerCall,congestionCount,congestionDay,outageId,outageDay,outageStartHour,outageDuration]);
+
+  function runDraft(reuseExistingScope=false){
     if(!snapshot || !assume)return;
     setError(null);setSelected(null);
     try{
@@ -133,9 +138,11 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
       };
       const outageStart = localStamp(outageDay,outageStartHour);
       const outageEnd = new Date(Date.parse(outageStart)+outageDuration*3600000).toISOString();
+      const startDay=reuseExistingScope&&runScope?runScope.split(":")[0]:window.start;
+      const endDay=reuseExistingScope&&runScope?runScope.split(":")[1]:window.end;
       const result=compareScenario(snapshot,{
-        horizonStartUtc:new Date(window.startMs).toISOString(),
-        horizonEndUtc:new Date(window.endMs).toISOString(),
+        horizonStartUtc:new Date(zonedMidnight(startDay)).toISOString(),
+        horizonEndUtc:new Date(zonedMidnight(endDay)).toISOString(),
         equipmentType:equipmentKind,
         machinesPerCall,
         congestionCount,
@@ -144,7 +151,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
         outageStartUtc:outageStart,
         outageEndUtc:outageEnd
       });
-      setRunResult(result);setRunScope(`${window.start}:${window.end}`);setLaneMode("berths");
+      setRunResult(result);setRunScope(`${startDay}:${endDay}`);setLaneMode("berths");
     }catch(e){setError(e instanceof Error?e.message:"Unable to run scheduling draft");}
   }
 
@@ -257,8 +264,8 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
           </div>
           <div className="pc-scenario-banner">Simulation only · Selected asset is unavailable for its specified outage window, not the entire month.</div>
           <label className="pc-confirm"><input type="checkbox" checked={assume} onChange={e=>{setAssume(e.target.checked);resetResult();}}/><span>I understand this is a <strong>simulation</strong>. Equipment requirements, congestion and timed outages are what-if assumptions. Recorded resource status is assumed constant outside outage windows.</span></label>
-          <button className="pc-run" type="button" onClick={runDraft} disabled={!snapshot||!assume||loading}>✦ Run draft optimization <span>↗</span></button>
-          <small className="pc-no-write">Read-only calculation. No Render schedule writes.</small>
+          <button className="pc-run" type="button" onClick={()=>{runDraft(false);setAutoRun(true);}} disabled={!snapshot||!assume||loading}>✦ Run draft optimization <span>↗</span></button>
+          <small className="pc-no-write">Read-only · Changes automatically recalculate after first run. No Render writes.</small>
         </div>
         {previewAssumptions&&runResult&&<div className="pc-results">
           <div className="pc-panel-label">BEFORE / AFTER · DRAFT</div>
