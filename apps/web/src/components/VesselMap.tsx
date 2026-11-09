@@ -328,6 +328,7 @@ export default function VesselMap({
           return (
             <Marker
               key={vessel.mmsi}
+              eventHandlers={{ click: () => onSelectVessel(vessel.mmsi) }}
               position={[
                 vessel.latitude,
                 vessel.longitude,
