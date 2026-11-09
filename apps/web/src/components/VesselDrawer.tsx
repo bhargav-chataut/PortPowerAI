@@ -81,7 +81,7 @@ export default function VesselDrawer({ mmsi, vessel, onClose }: Props) {
   }, [history, range, clock]);
   const speeds = filtered.map(p => p.speed_knots).filter((v): v is number => v != null);
   const avg = speeds.length ? speeds.reduce((a,b) => a+b,0)/speeds.length : null;
-  const latest = filtered.at(-1);
+  const latest = filtered[filtered.length - 1];
   const matched = arrivals?.filter(a => a.mmsi === String(mmsi)) ?? [];
   const freshness = vessel ? getVesselFreshness(vessel.lastUpdated) : "unknown";
 
