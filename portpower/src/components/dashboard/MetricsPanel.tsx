@@ -70,7 +70,7 @@ const operationsByPort: Record<string, Array<{ label: string; value: string; det
 }
 
 export default function MetricsPanel({ onClose, portName }: { onClose: () => void; portName: string }) {
-	const portMetrics = operationsByPort[portName] ?? operationsByPort['Gulfport Port']
+	const portMetrics = operationsByPort[portName] ?? []
 	const metricIcons = [Anchor, Boxes, Activity, Gauge]
 	const metricColors = ['#38bdf8', '#2dd4cf', '#fbbf24', '#a78bfa']
 
@@ -78,12 +78,12 @@ export default function MetricsPanel({ onClose, portName }: { onClose: () => voi
 		<aside className="pointer-events-auto absolute right-5 top-24 z-[1001] w-[280px] rounded-2xl border border-white/10 bg-[#10151c]/88 p-3 shadow-2xl backdrop-blur-xl">
 			<div className="mb-3 flex items-start justify-between px-1">
 				<div>
-					<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Live operations</p>
+					<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Illustrative operations · synthetic data</p>
 					<h2 className="mt-1 text-sm font-semibold text-white">{portName}</h2>
 				</div>
 				<div className="flex items-center gap-1">
 					<span className="flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-bold text-emerald-400">
-						<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> ONLINE
+						<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> DEMO
 					</span>
 					<button
 						type="button"
@@ -98,6 +98,9 @@ export default function MetricsPanel({ onClose, portName }: { onClose: () => voi
 			</div>
 
 			<div className="grid grid-cols-2 gap-2">
+                {portMetrics.length === 0 && (
+                  <p className="col-span-2 text-xs text-slate-400">No synthetic operations scenario configured for this location. AIS positions are shown separately on the map.</p>
+                )}
 				{portMetrics.map(({ label, value, detail }, index) => {
 					const Icon = metricIcons[index]
 					const color = metricColors[index]

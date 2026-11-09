@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { MapContainer, Marker, TileLayer, ZoomControl, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Layers, Satellite, Map as MapIcon, X, ChevronDown, MapPin, Ship } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 
 export const ports = [
   { name: 'Gulfport Port', coordinates: [30.365, -89.093] as [number, number] },
+  { name: 'PortMiami', coordinates: [25.778, -80.180] as [number, number] },
   { name: 'Port of Los Angeles', coordinates: [33.7405, -118.2765] as [number, number] },
   { name: 'Port of Jacksonville', coordinates: [30.324, -81.653] as [number, number] },
   { name: 'Port of Oakland', coordinates: [37.795, -122.274] as [number, number] },
@@ -45,6 +46,14 @@ const vesselIcon = L.divIcon({
   iconAnchor: [14, 14],
 })
 
+function MapFollowPort({ port }: { port: (typeof ports)[number] }) {
+  const map = useMap()
+  useEffect(() => {
+    map.flyTo(port.coordinates, port.name === 'Gulfport Port' || port.name === 'PortMiami' ? 12 : 11, { duration: 1 })
+  }, [map, port])
+  return null
+}
+
 function MapControls({
   labels,
   setLabels,
@@ -60,7 +69,6 @@ function MapControls({
   selectedPort: (typeof ports)[number]
   selectPort: (portName: string) => void
 }) {
-  const map = useMap()
   const [portsOpen, setPortsOpen] = useState(true)
   const [layersOpen, setLayersOpen] = useState(true)
 
@@ -87,7 +95,6 @@ function MapControls({
                 className={selectedPort.name === port.name ? 'active' : ''}
                 onClick={() => {
                   selectPort(port.name)
-                  map.flyTo(port.coordinates, port.name === 'Gulfport Port' ? 13 : 11, { duration: 1.2 })
                 }}
               >
                 <MapPin size={14} /> {port.name}
@@ -140,48 +147,64 @@ export default function EarthMap({
   const [layer, setLayer] = useState<'satellite' | 'map'>('satellite')
   const selectedPort = ports.find((port) => port.name === selectedPortName) ?? ports[0]
   const [vessels, setVessels] = useState<VesselPosition[]>([])
-  const [aisStatus, setAisStatus] = useState<'connecting' | 'live' | 'offline'>('connecting')
+  const [aisStatus, setAisStatus] = useState<'connecting' | 'live' | 'offline' | 'unsupported'>('connecting')
   const [lastUpdate, setLastUpdate] = useState<string>('')
 
   useEffect(() => {
-    const endpoint = import.meta.env.VITE_AIS_API_URL as string | undefined
-    if (!endpoint) {
-      setAisStatus('offline')
+    const region = selectedPortName === 'Gulfport Port'
+      ? 'gulfport'
+      : selectedPortName === 'PortMiami'
+        ? 'miami'
+        : null
+    if (!region) {
+      setVessels([])
+      setAisStatus('unsupported')
       return
     }
 
+    const baseEndpoint = (import.meta.env.VITE_AIS_API_URL as string | undefined)?.trim() || '/api/vessels'
+    const endpoint = new URL(baseEndpoint, window.location.origin)
+    endpoint.searchParams.set('region', region)
     let active = true
+    setVessels([])
+    setAisStatus('connecting')
+
     const refresh = async () => {
       try {
-        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } })
+        const response = await fetch(endpoint.toString(), { headers: { Accept: 'application/json' } })
         if (!response.ok) throw new Error(`AIS feed returned ${response.status}`)
         const payload = await response.json()
         const items = Array.isArray(payload) ? payload : payload.vessels ?? payload.data ?? []
+        if (!Array.isArray(items)) throw new Error('Invalid vessel API response')
         if (!active) return
         setVessels(items.map((item: Record<string, unknown>) => ({
           mmsi: String(item.mmsi ?? item.MMSI ?? ''),
           name: String(item.name ?? item.shipName ?? item.SHIPNAME ?? 'Unknown vessel'),
           latitude: Number(item.latitude ?? item.lat ?? item.LAT),
           longitude: Number(item.longitude ?? item.lon ?? item.LON),
-          speed: Number(item.speed ?? item.speedOverGround ?? item.SPEED ?? 0),
+          speed: Number(item.speedKnots ?? item.speed ?? item.speedOverGround ?? item.SPEED ?? 0),
           course: Number(item.course ?? item.courseOverGround ?? item.COURSE ?? 0),
           destination: item.destination ? String(item.destination) : undefined,
-          timestamp: item.timestamp ? String(item.timestamp) : undefined,
-        })).filter((vessel: VesselPosition) => Number.isFinite(vessel.latitude) && Number.isFinite(vessel.longitude)))
+          timestamp: item.lastUpdated ? String(item.lastUpdated) : item.timestamp ? String(item.timestamp) : undefined,
+        })).filter((vessel: VesselPosition) =>
+          vessel.mmsi.length > 0 &&
+          Number.isFinite(vessel.latitude) && Number.isFinite(vessel.longitude) &&
+          vessel.latitude >= -90 && vessel.latitude <= 90 &&
+          vessel.longitude >= -180 && vessel.longitude <= 180
+        ))
         setAisStatus('live')
         setLastUpdate(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
       } catch {
         if (active) setAisStatus('offline')
       }
     }
-
-    refresh()
-    const interval = window.setInterval(refresh, 30_000)
+    void refresh()
+    const interval = window.setInterval(() => { void refresh() }, 10_000)
     return () => {
       active = false
       window.clearInterval(interval)
     }
-  }, [])
+  }, [selectedPortName])
 
   return (
     <div className="earth-map">
@@ -209,6 +232,7 @@ export default function EarthMap({
             opacity={0.95}
           />
         )}
+        <MapFollowPort port={selectedPort} />
         {ports.map((port) => (
           <Marker key={port.name} position={port.coordinates} icon={markerIcon} />
         ))}
@@ -217,7 +241,14 @@ export default function EarthMap({
             key={vessel.mmsi || `${vessel.name}-${vessel.latitude}-${vessel.longitude}`}
             position={[vessel.latitude, vessel.longitude]}
             icon={vesselIcon}
-          />
+          >
+            <Popup>
+              <strong>{vessel.name}</strong>
+              <p>MMSI: {vessel.mmsi}</p>
+              <p>Reported speed: {Number.isFinite(vessel.speed) ? vessel.speed : 'Unknown'} kn</p>
+              <p>Last backend receipt: {vessel.timestamp ? new Date(vessel.timestamp).toLocaleString() : 'Unavailable'}</p>
+            </Popup>
+          </Marker>
         ))}
         <ZoomControl position="bottomright" />
         <MapControls labels={labels} setLabels={setLabels} layer={layer} setLayer={setLayer} selectedPort={selectedPort} selectPort={onSelectPort} />
@@ -226,8 +257,8 @@ export default function EarthMap({
       <div className={`ais-map-status ais-${aisStatus}`}>
         <Ship size={16} />
         <span>
-          <strong>{aisStatus === 'live' ? 'Live AIS vessels' : aisStatus === 'connecting' ? 'Connecting AIS' : 'AIS unavailable'}</strong>
-          <small>{aisStatus === 'live' ? `${vessels.length} vessels · updated ${lastUpdate}` : 'Configure VITE_AIS_API_URL'}</small>
+          <strong>{aisStatus === 'live' ? 'AIS API connected' : aisStatus === 'connecting' ? 'Connecting to vessel API' : aisStatus === 'unsupported' ? 'AIS not configured for this port' : 'AIS API unavailable'}</strong>
+          <small>{aisStatus === 'live' ? `${vessels.length} received vessel positions · checked ${lastUpdate}` : aisStatus === 'unsupported' ? 'Gulfport and Miami monitoring available' : 'Start the vessel API or configure VITE_AIS_API_URL'}</small>
         </span>
       </div>
     </div>

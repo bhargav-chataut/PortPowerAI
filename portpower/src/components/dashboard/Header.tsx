@@ -12,7 +12,7 @@ export default function Header() {
           PortPower Control Center
         </h1>
         <p className="text-xs text-slate-400">
-          Gulfport · Live aerial operations
+          Port visualization · illustrative operational data
         </p>
       </div>
     </header>
