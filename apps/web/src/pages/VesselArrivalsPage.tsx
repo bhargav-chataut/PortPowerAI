@@ -290,7 +290,7 @@ import {
             marginBottom: "24px",
           }}
         >
-          <div style={{ ...cardStyle, flex: "1 1 160px" }}>
+          <div className="pp-arrivals-stat" style={{ ...cardStyle, flex: "1 1 160px" }}>
             <p style={{ color: "#64748b", margin: 0 }}>
               Registered Arrivals
             </p>
@@ -299,7 +299,7 @@ import {
             </strong>
           </div>
   
-          <div style={{ ...cardStyle, flex: "1 1 160px" }}>
+          <div className="pp-arrivals-stat" style={{ ...cardStyle, flex: "1 1 160px" }}>
             <p style={{ color: "#64748b", margin: 0 }}>
               Berths
             </p>
@@ -330,7 +330,7 @@ import {
             alignItems: "start",
           }}
         >
-          <section style={cardStyle}>
+          <section className="pp-arrivals-card" style={cardStyle}>
             <h2 style={{ fontSize: "18px", marginTop: 0 }}>
               Register Expected Arrival
             </h2>
@@ -524,7 +524,7 @@ import {
             </form>
           </section>
   
-          <section style={cardStyle}>
+          <section className="pp-arrivals-card" style={cardStyle}>
             <h2 style={{ fontSize: "18px", marginTop: 0 }}>
               Arrival Schedule
             </h2>
