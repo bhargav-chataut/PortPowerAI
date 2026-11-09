@@ -1,15 +1,15 @@
-
 import "dotenv/config";
 import { Pool } from "pg";
 
-// Use Render when DATABASE_URL is configured.
-// Otherwise, connect to local PostgreSQL.
 const databaseUrl = process.env.DATABASE_URL;
 
 export const pool = new Pool({
   ...(databaseUrl
     ? {
         connectionString: databaseUrl,
+        ssl: {
+          rejectUnauthorized: true,
+        },
       }
     : {
         host: process.env.DB_HOST ?? "localhost",
@@ -25,15 +25,12 @@ export const pool = new Pool({
 });
 
 export async function testDatabaseConnection(): Promise<void> {
-  const result = await pool.query(`
-    SELECT
-      current_database() AS database,
-      NOW() AS current_time
-  `);
+  const result = await pool.query(
+    "SELECT NOW() AS current_time"
+  );
 
   console.log(
     "PostgreSQL connected:",
-    result.rows[0].database,
     result.rows[0].current_time
   );
 }
