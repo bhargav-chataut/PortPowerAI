@@ -79,5 +79,8 @@ body {
 .ais-live strong::before { content:''; display:inline-block; width:7px; height:7px; margin-right:7px; border-radius:50%; background:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.14); }
 .ais-offline strong::before { content:''; display:inline-block; width:7px; height:7px; margin-right:7px; border-radius:50%; background:#64748b; }
 .vessel-marker-wrap { background:none; border:0; }
-.vessel-marker { width:28px; height:28px; display:grid; place-items:center; transform:rotate(45deg); border:2px solid #67e8f9; border-radius:50% 50% 50% 8px; background:#082f49; box-shadow:0 5px 16px rgba(0,0,0,.45); }
-.vessel-marker span { width:7px; height:7px; transform:rotate(-45deg); border-radius:50%; background:#22d3ee; }
+.vessel-marker { width:28px; height:28px; display:grid; place-items:center; border-radius:50%; background:rgba(127,29,29,.96); border:2px solid rgba(254,202,202,.9); box-shadow:0 0 0 3px rgba(239,68,68,.22), 0 10px 24px rgba(0,0,0,.36); transition:transform .2s ease; }
+.vessel-marker span { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:14px solid #ef4444; transform:translateY(-2px); filter:drop-shadow(0 0 7px rgba(239,68,68,.8)); }
+.vessel-tooltip { display:flex; flex-direction:column; gap:3px; min-width:172px; }
+.vessel-tooltip strong { color:#111827; font-size:12px; }
+.vessel-tooltip span { color:#374151; font-size:10px; }
