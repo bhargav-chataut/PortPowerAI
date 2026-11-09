@@ -150,14 +150,8 @@ ReactDOM.createRoot(
         {/* ========================= */}
 
         {/* Gulfport Operations Demo */}
-        <Route
-          path="/operations"
-          element={
-            <ProtectedRoute port="gulfport">
-              <OperationsDashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/operations" element={<Navigate to="/gulfport/planning" replace />} />
+        <Route path="/operations/legacy" element={<ProtectedRoute port="gulfport"><OperationsDashboard /></ProtectedRoute>} />
 
         {/* Vessel Details */}
         <Route
