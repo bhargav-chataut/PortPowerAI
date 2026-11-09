@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { scheduleFcfs, type FcfsScheduleResult, type SchedulingInputs, type SchedulingEquipmentType } from "../../../../packages/core/dist/index.js";
+import type { SchedulingInputs, SchedulingEquipmentType } from "../../../../packages/core/dist/index.js";
+import { compareScenario, type ScenarioComparison } from "../services/constraintScheduler";
 import type { PortCode } from "../services/authApi";
 import "./PlanningCalendar.css";
 
@@ -60,11 +61,17 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   const [snapshot,setSnapshot] = useState<SchedulingInputs|null>(null);
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState<string|null>(null);
-  const [runResult,setRunResult] = useState<FcfsScheduleResult|null>(null);
+  const [runResult,setRunResult] = useState<ScenarioComparison|null>(null);
   const [runScope,setRunScope] = useState<string|null>(null);
   const [assume,setAssume] = useState(false);
   const [equipmentKind,setEquipmentKind] = useState<SchedulingEquipmentType>("forklift");
-  const [unavailable,setUnavailable] = useState<string[]>([]);
+  const [outageId,setOutageId] = useState("");
+  const [outageDay,setOutageDay] = useState("2026-12-10");
+  const [outageStartHour,setOutageStartHour] = useState(8);
+  const [outageDuration,setOutageDuration] = useState(8);
+  const [congestionCount,setCongestionCount] = useState(8);
+  const [congestionDay,setCongestionDay] = useState("2026-12-10");
+  const [machinesPerCall,setMachinesPerCall] = useState(2);
   const [selected,setSelected] = useState<Slot|null>(null);
   const [laneMode,setLaneMode] = useState<"berths"|"equipment">("berths");
   const [reload,setReload] = useState(0);
@@ -87,7 +94,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   const allArrivals=snapshot?.arrivals??[];
   const slots:Slot[]=useMemo(()=>{
     if(!snapshot)return [];
-    if(runResult && runScope===`${window.start}:${window.end}`)return runResult.assignments.map(a=>{
+    if(runResult && runScope===`${window.start}:${window.end}`)return runResult.revised.assignments.map(a=>{
       const arrival=snapshot.arrivals.find(x=>x.id===a.arrivalId);
       return {id:a.arrivalId,name:arrival?.vesselName??a.mmsi,berthId:a.berthId,start:Date.parse(a.serviceStartUtc),end:Date.parse(a.completionTimeUtc),equipmentIds:a.equipmentIds,simulated:true,note:"Draft FCFS allocation using explicit simulation assumptions"};
     });
@@ -98,14 +105,16 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     }));
   },[snapshot,runResult,runScope,window.start,window.end,allArrivals]);
   const visibleSlots=slots.filter(s=>s.end>window.startMs&&s.start<window.endMs);
+  const comparisonReady=runResult!==null && runScope===`${window.start}:${window.end}`;
+  const movedIds=new Set(comparisonReady?runResult.changes.filter(c=>c.reason!=="Unchanged").map(c=>c.arrivalId):[]);
   const resourceRows=laneMode==="berths"?(snapshot?.berths??[]).map(b=>({id:b.id,name:b.name,detail:b.status,active:b.availableForPlanning})):
-    (snapshot?.equipment??[]).map(e=>({id:e.id,name:e.code,detail:e.type.replaceAll("_"," "),active:e.availableForPlanning&&!unavailable.includes(e.id)}));
+    (snapshot?.equipment??[]).map(e=>({id:e.id,name:e.code,detail:e.type.replaceAll("_"," "),active:e.availableForPlanning}));
   const mappedRows=resourceRows.map(resource=>({...resource,bookings:visibleSlots.filter(s=>laneMode==="berths"?s.berthId===resource.id:s.equipmentIds.includes(resource.id))}));
   const unassigned=visibleSlots.filter(s=>laneMode==="berths"&&!s.berthId);
   const columns=selectCols(scale,window.start);
   const rowConflict=(a:Slot,b:Slot)=>a.id!==b.id&&a.start<b.end&&b.start<a.end;
   const overlaps=mappedRows.flatMap(r=>r.bookings.filter((s,i)=>r.bookings.slice(i+1).some(t=>rowConflict(s,t))));
-  const previewAssumptions=runResult&&runScope===`${window.start}:${window.end}`;
+  const previewAssumptions=comparisonReady;
   const resetResult=()=>{setRunResult(null);setRunScope(null);setSelected(null);};
   const move=(step:number)=>{
     setCursor(date=>scale==="day"?dateShift(date,step):scale==="week"?dateShift(date,7*step):scale==="month"?dateMonthShift(date,step):dateYearShift(date,step));
@@ -117,22 +126,23 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     if(!snapshot || !assume)return;
     setError(null);setSelected(null);
     try{
-      const arrivals=snapshot.arrivals.filter(a=>Date.parse(a.plannedEta)>=window.startMs&&Date.parse(a.plannedEta)<window.endMs);
-      if(arrivals.length===0){setError("No arrivals in this window. Choose December 2026 or another planning range.");return;}
-      // These values are explicit opt-in demo assumptions, not learned from port infrastructure.
-      const assumptions={
+      const localStamp=(day:string,hour:number)=>{
+        const base=zonedMidnight(day);
+        return new Date(base+hour*3600000).toISOString();
+      };
+      const outageStart = localStamp(outageDay,outageStartHour);
+      const outageEnd = new Date(Date.parse(outageStart)+outageDuration*3600000).toISOString();
+      const result=compareScenario(snapshot,{
         horizonStartUtc:new Date(window.startMs).toISOString(),
         horizonEndUtc:new Date(window.endMs).toISOString(),
-        availableResources:{source:"simulated" as const,note:"DEMO: currently available equipment and berths are assumed continuously available during this planning window. No shift/maintenance calendar is stored."},
-        equipmentRequirements:arrivals.map(a=>({arrivalId:a.id,source:"simulated" as const,note:`DEMO: one ${equipmentKind} assigned per active vessel call for its full estimated service time; cargo-specific needs not yet modeled.`,requirements:[{type:equipmentKind,count:1}]})),
-      };
-      const simulatedInput={
-        berths:snapshot.berths,
-        equipment:snapshot.equipment.map(e=>unavailable.includes(e.id)?{...e,status:"maintenance" as const,availableForPlanning:false}:e),
-        arrivals,
-        assumptions:snapshot.assumptions,
-      };
-      const result=scheduleFcfs(simulatedInput,assumptions);
+        equipmentType:equipmentKind,
+        machinesPerCall,
+        congestionCount,
+        congestionStartUtc:localStamp(congestionDay,8),
+        outageEquipmentId:outageId,
+        outageStartUtc:outageStart,
+        outageEndUtc:outageEnd
+      });
       setRunResult(result);setRunScope(`${window.start}:${window.end}`);setLaneMode("berths");
     }catch(e){setError(e instanceof Error?e.message:"Unable to run scheduling draft");}
   }
@@ -150,8 +160,8 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     <div className="pc-metrics">
       <div><small>VESSEL CALLS IN VIEW</small><strong>{loading?"—":planningArrivals.length}</strong><span>Planned arrivals</span></div>
       <div><small>BERTHS READY</small><strong>{snapshot?`${snapshot.berths.filter(x=>x.availableForPlanning).length}/${snapshot.berths.length}`:"—"}</strong><span>Recorded status</span></div>
-      <div><small>EQUIPMENT READY</small><strong>{snapshot?`${snapshot.equipment.filter(x=>x.availableForPlanning&&!unavailable.includes(x.id)).length}/${snapshot.equipment.length}`:"—"}</strong><span>Excludes scenario outages</span></div>
-      <div><small>{previewAssumptions?"DRAFT UNSCHEDULED":"VISIBLE OVERLAPS"}</small><strong>{previewAssumptions?runResult!.unscheduled.length:overlaps.length}</strong><span>{previewAssumptions?"Proposed plan":"Indicative bookings only"}</span></div>
+      <div><small>EQUIPMENT READY</small><strong>{snapshot?`${snapshot.equipment.filter(x=>x.availableForPlanning).length}/${snapshot.equipment.length}`:"—"}</strong><span>Recorded availability</span></div>
+      <div><small>{previewAssumptions?"DRAFT UNSCHEDULED":"VISIBLE OVERLAPS"}</small><strong>{previewAssumptions?runResult!.revised.unscheduled.length:overlaps.length}</strong><span>{previewAssumptions?"Proposed plan":"Indicative bookings only"}</span></div>
     </div>
     <div className="pc-board">
       <div className="pc-main-board">
@@ -187,7 +197,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
               {row.bookings.map(s=>{
                 const left=rowOffset(Math.max(s.start,window.startMs),window.startMs,window.endMs);
                 const right=rowOffset(Math.min(s.end,window.endMs),window.startMs,window.endMs);
-                return <button type="button" key={s.id} title={`${s.name}: ${displayDate(s.start)} ${clock(s.start)}–${clock(s.end)}`} className={`pc-event ${s.simulated?"pc-scheduled":"pc-incoming"}`} style={{left:`${left}%`,width:`${Math.max(.5,right-left)}%`}} onClick={()=>setSelected(s)} aria-label={`Inspect ${s.name}`}><span>{s.name}</span></button>;
+                return <button type="button" key={s.id} title={`${s.name}: ${displayDate(s.start)} ${clock(s.start)}–${clock(s.end)}`} className={`pc-event ${s.simulated?"pc-scheduled":"pc-incoming"} ${movedIds.has(s.id)?"pc-moved":""}`} style={{left:`${left}%`,width:`${Math.max(.5,right-left)}%`}} onClick={()=>setSelected(s)} aria-label={`Inspect ${s.name}`}><span>{s.name}</span></button>;
               })}
             </div>
           </div>)}
@@ -208,7 +218,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
           <button className="pc-run" type="button" onClick={runDraft} disabled={!snapshot||!assume||loading}>✦ Run draft optimization <span>↗</span></button>
           <small className="pc-no-write">Read-only calculation. No Render schedule writes.</small>
         </div>
-        {previewAssumptions&&<div className="pc-results"><div className="pc-panel-label">DRAFT RESULTS</div><div className="pc-result-stats"><div><strong>{runResult!.metrics.scheduledCount}</strong><small>Scheduled</small></div><div><strong>{runResult!.metrics.unscheduledCount}</strong><small>Unscheduled</small></div></div><p>Average wait: <strong>{Math.round(runResult!.metrics.averageWaitingMinutes)} min</strong></p>{runResult!.unscheduled.length>0&&<div className="pc-unscheduled">{runResult!.unscheduled.map(item=><div key={item.arrivalId}><strong>Arrival #{item.arrivalId}</strong><span>{item.message}</span></div>)}</div>}</div>}
+        {previewAssumptions&&<div className="pc-results"><div className="pc-panel-label">DRAFT RESULTS</div><div className="pc-result-stats"><div><strong>{runResult!.revised.metrics.scheduledCount}</strong><small>Scheduled</small></div><div><strong>{runResult!.revised.metrics.unscheduledCount}</strong><small>Unscheduled</small></div></div><p>Average wait: <strong>{Math.round(runResult!.revised.metrics.averageWaitingMinutes)} min</strong></p>{runResult!.unscheduled.length>0&&<div className="pc-unscheduled">{runResult!.revised.unscheduled.map(item=><div key={item.arrivalId}><strong>Arrival #{item.arrivalId}</strong><span>{item.message}</span></div>)}</div>}</div>}
         {!previewAssumptions&&<div className="pc-standby"><span>◷</span><strong>Ready to simulate</strong><p>Select assumptions and run a draft to compare available berth/equipment resources against arriving vessels.</p></div>}
         <div className="pc-caveat">Not certified for real-world port dispatch. Actual shifts, cargo requirements, vessel dimensions, maintenance windows and fuel calculations are not in the current dataset.</div>
       </aside>
