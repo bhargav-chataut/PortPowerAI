@@ -9,8 +9,8 @@ type Slot = { id: string; name: string; berthId: string | null; start: number; e
 const TZ = "America/New_York";
 const D = 86400000;
 const ymd = (year: number, month: number, day: number) => [year, String(month).padStart(2,"0"), String(day).padStart(2,"0")].join("-");
-const parts = (date: Date) => {
-  const tokens = new Intl.DateTimeFormat("en-US", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+const parts = (date: Date, timeZone = TZ) => {
+  const tokens = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
   const get = (key: string) => tokens.find(t => t.type === key)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}`;
 };
@@ -30,20 +30,20 @@ const yearStart = (date: string) => date.slice(0,4)+"-01-01";
 const weekday = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 const weekStart = (date: string) => dateShift(date,-((weekday(date)+6)%7));
 const short = (d: string, settings: Intl.DateTimeFormatOptions = {month:"short",day:"numeric"}) => new Intl.DateTimeFormat("en-US",{timeZone:"UTC",...settings}).format(new Date(`${d}T12:00:00Z`));
-const clock = (ms:number) => new Intl.DateTimeFormat("en-US",{hour:"numeric",minute:"2-digit",timeZone:TZ}).format(ms);
-const displayDate = (ms:number) => new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",timeZone:TZ}).format(ms);
-function zonedMidnight(day:string) {
+const clock = (ms:number,timeZone=TZ) => new Intl.DateTimeFormat("en-US",{hour:"numeric",minute:"2-digit",timeZone}).format(ms);
+const displayDate = (ms:number,timeZone=TZ) => new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",timeZone}).format(ms);
+function zonedMidnight(day:string,timeZone=TZ) {
   // Compute America/New_York midnight with the appropriate EST/EDT offset for this date.
   const noon=new Date(`${day}T12:00:00Z`);
-  const zone=new Intl.DateTimeFormat("en-US",{timeZone:TZ,timeZoneName:"shortOffset"}).formatToParts(noon).find(p=>p.type==="timeZoneName")?.value ?? "GMT-5";
+  const zone=new Intl.DateTimeFormat("en-US",{timeZone,timeZoneName:"shortOffset"}).formatToParts(noon).find(p=>p.type==="timeZoneName")?.value ?? "GMT-5";
   const m=zone.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
   const offset=m?(m[1]==="+"?1:-1)*(Number(m[2])*60+Number(m[3]??0)):-300;
   return Date.parse(`${day}T00:00:00Z`)-offset*60000;
 }
-function bounds(date:string,scale:Scale) {
+function bounds(date:string,scale:Scale,timeZone=TZ) {
   const start=scale==="year"?yearStart(date):scale==="month"?monthStart(date):scale==="week"?weekStart(date):date;
   const end=scale==="year"?dateYearShift(start,1):scale==="month"?dateMonthShift(start,1):dateShift(start,scale==="week"?7:1);
-  return {start,end,startMs:zonedMidnight(start),endMs:zonedMidnight(end)};
+  return {start,end,startMs:zonedMidnight(start,timeZone),endMs:zonedMidnight(end,timeZone)};
 }
 function selectCols(scale:Scale,start:string) {
   if (scale==="day") return Array.from({length:24},(_,i)=>({label:`${String(i).padStart(2,"0")}:00`,key:i.toString()}));
@@ -56,6 +56,7 @@ function rowOffset(time:number,low:number,high:number) {
 }
 
 export default function PlanningCalendar({port}:{port:PortCode}) {
+  const timeZone=port==="miami"?"America/New_York":"America/Chicago";
   const [scale,setScale] = useState<Scale>("month");
   const [cursor,setCursor] = useState("2026-12-01");
   const [snapshot,setSnapshot] = useState<SchedulingInputs|null>(null);
@@ -76,7 +77,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
   const [selected,setSelected] = useState<Slot|null>(null);
   const [laneMode,setLaneMode] = useState<"berths"|"equipment">("berths");
   const [reload,setReload] = useState(0);
-  const window=useMemo(()=>bounds(cursor,scale),[cursor,scale]);
+  const window=useMemo(()=>bounds(cursor,scale,timeZone),[cursor,scale,timeZone]);
   const displayRange=scale==="year"?String(cursor.slice(0,4)):scale==="month"?short(monthStart(cursor),{month:"long",year:"numeric"}):`${short(window.start)} – ${short(dateShift(window.end,-1),{month:"short",day:"numeric",year:"numeric"})}`;
 
   useEffect(()=>{
@@ -106,7 +107,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     }));
   },[snapshot,runResult,runScope,window.start,window.end,allArrivals]);
   const visibleSlots=slots.filter(s=>s.end>window.startMs&&s.start<window.endMs);
-  const comparisonReady=runResult!==null && runScope!==null && window.startMs < zonedMidnight(runScope.split(":")[1]) && window.endMs > zonedMidnight(runScope.split(":")[0]);
+  const comparisonReady=runResult!==null && runScope!==null && window.startMs < zonedMidnight(runScope.split(":")[1],timeZone) && window.endMs > zonedMidnight(runScope.split(":")[0],timeZone);
   const movedIds=new Set(comparisonReady?runResult.changes.filter(c=>c.reason!=="Unchanged").map(c=>c.arrivalId):[]);
   const resourceRows=laneMode==="berths"?(snapshot?.berths??[]).map(b=>({id:b.id,name:b.name,detail:b.status,active:b.availableForPlanning})):
     (snapshot?.equipment??[]).map(e=>({id:e.id,name:e.code,detail:e.type.replaceAll("_"," "),active:e.availableForPlanning}));
@@ -133,7 +134,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
     setError(null);setSelected(null);
     try{
       const localStamp=(day:string,hour:number)=>{
-        const base=zonedMidnight(day);
+        const base=zonedMidnight(day,timeZone);
         return new Date(base+hour*3600000).toISOString();
       };
       const outageStart = localStamp(outageDay,outageStartHour);
@@ -141,8 +142,8 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
       const startDay=reuseExistingScope&&runScope?runScope.split(":")[0]:window.start;
       const endDay=reuseExistingScope&&runScope?runScope.split(":")[1]:window.end;
       const result=compareScenario(snapshot,{
-        horizonStartUtc:new Date(zonedMidnight(startDay)).toISOString(),
-        horizonEndUtc:new Date(zonedMidnight(endDay)).toISOString(),
+        horizonStartUtc:new Date(zonedMidnight(startDay,timeZone)).toISOString(),
+        horizonEndUtc:new Date(zonedMidnight(endDay,timeZone)).toISOString(),
         equipmentType:equipmentKind,
         machinesPerCall,
         congestionCount,
@@ -179,7 +180,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
           {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=><div className="pc-weekday" key={d}>{d}</div>)}
           {Array.from({length:(weekday(window.start)+6)%7},(_,i)=><div className="pc-blank-day" key={`blank-${i}`}/>)}
           {columns.map(c=>{
-            const calls=comparisonReady?visibleSlots.filter(s=>parts(new Date(s.start))===c.key):planningArrivals.filter(a=>parts(new Date(a.plannedEta))===c.key);
+            const calls=comparisonReady?visibleSlots.filter(s=>parts(new Date(s.start),timeZone)===c.key):planningArrivals.filter(a=>parts(new Date(a.plannedEta),timeZone)===c.key);
             return <button type="button" className={`pc-day-cell ${calls.length?"pc-day-active":""}`} key={c.key} onClick={()=>{setCursor(c.key);setScale("day");setSelected(null);}}>
               <span className="pc-day-number">{c.label}</span><small>{calls.length? `${calls.length} vessel${calls.length===1?"":"s"}` : "—"}</small>
               {calls.slice(0,2).map(a=><span className="pc-day-event" key={a.id}>{"name" in a ? a.name : a.vesselName??a.mmsi}</span>)}
@@ -189,7 +190,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
         </div> : scale === "year" ? <div className="pc-year-grid">
           {columns.map((c,i)=>{
             const start=ymd(Number(window.start.slice(0,4)),i+1,1);
-            const count=comparisonReady?visibleSlots.filter(s=>parts(new Date(s.start)).startsWith(start.slice(0,7))).length:allArrivals.filter(a=>parts(new Date(a.plannedEta)).startsWith(start.slice(0,7))).length;
+            const count=comparisonReady?visibleSlots.filter(s=>parts(new Date(s.start),timeZone).startsWith(start.slice(0,7))).length:allArrivals.filter(a=>parts(new Date(a.plannedEta),timeZone).startsWith(start.slice(0,7))).length;
             return <button type="button" className="pc-year-cell" key={c.key} onClick={()=>{setCursor(start);setScale("month");setSelected(null);}}>
               <span className="pc-year-month">{c.label}</span><strong>{count}</strong><small>planned calls</small>
               <span className="pc-year-meter"><span style={{width:`${Math.min(100,count/20*100)}%`}}/></span>
@@ -205,18 +206,18 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
               {row.baselineBookings.map(s=>{
                 const left=rowOffset(Math.max(s.start,window.startMs),window.startMs,window.endMs);
                 const right=rowOffset(Math.min(s.end,window.endMs),window.startMs,window.endMs);
-                return <span key={`baseline-${s.id}`} title={`Before: ${s.name} ${displayDate(s.start)} ${clock(s.start)}`} className="pc-baseline-ghost" style={{left:`${left}%`,width:`${Math.max(.5,right-left)}%`}}/>;
+                return <span key={`baseline-${s.id}`} title={`Before: ${s.name} ${displayDate(s.start,timeZone)} ${clock(s.start,timeZone)}`} className="pc-baseline-ghost" style={{left:`${left}%`,width:`${Math.max(.5,right-left)}%`}}/>;
               })}
               {row.bookings.map(s=>{
                 const left=rowOffset(Math.max(s.start,window.startMs),window.startMs,window.endMs);
                 const right=rowOffset(Math.min(s.end,window.endMs),window.startMs,window.endMs);
-                return <button type="button" key={s.id} title={`${s.name}: ${displayDate(s.start)} ${clock(s.start)}–${clock(s.end)}`} className={`pc-event ${s.simulated?"pc-scheduled":"pc-incoming"} ${movedIds.has(s.id)?"pc-moved":""}`} style={{left:`${left}%`,width:`${Math.max(.5,right-left)}%`}} onClick={()=>setSelected(s)} aria-label={`Inspect ${s.name}`}><span>{s.name}</span></button>;
+                return <button type="button" key={s.id} title={`${s.name}: ${displayDate(s.start,timeZone)} ${clock(s.start,timeZone)}–${clock(s.end,timeZone)}`} className={`pc-event ${s.simulated?"pc-scheduled":"pc-incoming"} ${movedIds.has(s.id)?"pc-moved":""}`} style={{left:`${left}%`,width:`${Math.max(.5,right-left)}%`}} onClick={()=>setSelected(s)} aria-label={`Inspect ${s.name}`}><span>{s.name}</span></button>;
               })}
             </div>
           </div>)}
         </div></div>}
         {unassigned.length>0&&<div className="pc-unassigned">{unassigned.length} arrivals have no preferred berth. They do not appear in a berth lane until assigned.</div>}
-        <div className="pc-board-footnote">{comparisonReady?"Green bars show the revised schedule under your scenario. Open Day or Week to inspect changed vessel times.":"Blue bars represent indicative ETA + service duration, not confirmed berth bookings."} Times displayed in Eastern Time; all scenarios are read-only.</div>
+        <div className="pc-board-footnote">{comparisonReady?"Green bars show the revised schedule under your scenario. Open Day or Week to inspect changed vessel times.":"Blue bars represent indicative ETA + service duration, not confirmed berth bookings."} Times displayed in {port==="miami"?"Eastern":"Central"} Time; all scenarios are read-only.</div>
       </div>
       <aside className="pc-optimizer">
         <div className="pc-optimizer-head"><span className="pc-ai-symbol">✦</span><div><div className="pc-kicker">SCHEDULING ENGINE</div><h2>Optimizer</h2></div><span className="pc-engine-tag">FCFS v1</span></div>
