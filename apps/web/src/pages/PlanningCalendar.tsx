@@ -203,7 +203,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
           </div>)}
         </div></div>}
         {unassigned.length>0&&<div className="pc-unassigned">{unassigned.length} arrivals have no preferred berth. They do not appear in a berth lane until assigned.</div>}
-        <div className="pc-board-footnote">Timeline uses port-local Eastern time. Indicative bars use ETA + estimated service duration and are not confirmed berth assignments.</div>
+        <div className="pc-board-footnote">{comparisonReady?"Green bars show the revised schedule under your scenario. Open Day or Week to inspect changed vessel times.":"Blue bars represent indicative ETA + service duration, not confirmed berth bookings."} Times displayed in Eastern Time; all scenarios are read-only.</div>
       </div>
       <aside className="pc-optimizer">
         <div className="pc-optimizer-head"><span className="pc-ai-symbol">✦</span><div><div className="pc-kicker">SCHEDULING ENGINE</div><h2>Optimizer</h2></div><span className="pc-engine-tag">FCFS v1</span></div>
@@ -212,13 +212,68 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
           <div className="pc-panel-label">SCENARIO INPUTS</div>
           <label className="pc-field-label">Required equipment per vessel<select value={equipmentKind} onChange={e=>{setEquipmentKind(e.target.value as SchedulingEquipmentType);resetResult();}}>
             {(["forklift","reach_stacker","mobile_crane","gantry_crane","terminal_tractor"] as SchedulingEquipmentType[]).map(v=><option key={v} value={v}>{v.replaceAll("_"," ")}</option>)}</select></label>
-          <div className="pc-panel-label pc-outage-heading">WHAT-IF OUTAGES</div>
-          <div className="pc-outages">{(snapshot?.equipment??[]).slice(0,25).map(e=><label key={e.id}><input type="checkbox" checked={unavailable.includes(e.id)} onChange={event=>{setUnavailable(previous=>event.target.checked?[...previous,e.id]:previous.filter(id=>id!==e.id));resetResult();}}/>{e.code}<small>{e.type.replaceAll("_"," ")}</small></label>)}</div>
-          <label className="pc-confirm"><input type="checkbox" checked={assume} onChange={e=>{setAssume(e.target.checked);resetResult();}}/><span>I understand this is a <strong>simulation</strong>: one selected machine per vessel and continuous resource availability are assumptions, not verified operational requirements.</span></label>
+          <div className="pc-panel-label pc-outage-heading">CONGESTION TEST</div>
+          <p className="pc-scenario-note">Move the earliest vessel calls in this calendar period to one shared arrival time. The original dates remain unchanged in Render.</p>
+          <label className="pc-field-label">Vessels arriving together
+            <select value={congestionCount} onChange={e=>{setCongestionCount(Number(e.target.value));resetResult();}}>
+              {[0,2,4,6,8,10,12,16,20].map(n=><option key={n} value={n}>{n===0?"No congestion":`${n} vessels simultaneously`}</option>)}
+            </select>
+          </label>
+          <label className="pc-field-label pc-field-spaced">Congestion day
+            <input type="date" value={congestionDay} onChange={e=>{setCongestionDay(e.target.value);resetResult();}}/>
+          </label>
+          <label className="pc-field-label pc-field-spaced">Machines needed per vessel
+            <select value={machinesPerCall} onChange={e=>{setMachinesPerCall(Number(e.target.value));resetResult();}}>
+              {[1,2,3,4].map(n=><option key={n} value={n}>{n} machine{n>1?"s":""}</option>)}
+            </select>
+          </label>
+          <div className="pc-panel-label pc-outage-heading">TIMED EQUIPMENT OUTAGE</div>
+          <label className="pc-field-label">Affected machine
+            <select value={outageId} onChange={e=>{setOutageId(e.target.value);resetResult();}}>
+              <option value="">No outage</option>
+              {(snapshot?.equipment??[]).filter(e=>e.availableForPlanning&&e.type===equipmentKind).map(e=><option key={e.id} value={e.id}>{e.code} · {e.energyType??"Unknown energy"}</option>)}
+            </select>
+          </label>
+          <label className="pc-field-label pc-field-spaced">Outage date
+            <input type="date" value={outageDay} disabled={!outageId} onChange={e=>{setOutageDay(e.target.value);resetResult();}}/>
+          </label>
+          <div className="pc-field-pair">
+            <label className="pc-field-label">Starts at
+              <select value={outageStartHour} disabled={!outageId} onChange={e=>{setOutageStartHour(Number(e.target.value));resetResult();}}>
+                {Array.from({length:24},(_,i)=><option key={i} value={i}>{String(i).padStart(2,"0")}:00</option>)}
+              </select>
+            </label>
+            <label className="pc-field-label">Duration
+              <select value={outageDuration} disabled={!outageId} onChange={e=>{setOutageDuration(Number(e.target.value));resetResult();}}>
+                {[2,4,6,8,12,24].map(n=><option key={n} value={n}>{n} hours</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="pc-scenario-banner">Simulation only · Selected asset is unavailable for its specified outage window, not the entire month.</div>
+          <label className="pc-confirm"><input type="checkbox" checked={assume} onChange={e=>{setAssume(e.target.checked);resetResult();}}/><span>I understand this is a <strong>simulation</strong>. Equipment requirements, congestion and timed outages are what-if assumptions. Recorded resource status is assumed constant outside outage windows.</span></label>
           <button className="pc-run" type="button" onClick={runDraft} disabled={!snapshot||!assume||loading}>✦ Run draft optimization <span>↗</span></button>
           <small className="pc-no-write">Read-only calculation. No Render schedule writes.</small>
         </div>
-        {previewAssumptions&&<div className="pc-results"><div className="pc-panel-label">DRAFT RESULTS</div><div className="pc-result-stats"><div><strong>{runResult!.revised.metrics.scheduledCount}</strong><small>Scheduled</small></div><div><strong>{runResult!.revised.metrics.unscheduledCount}</strong><small>Unscheduled</small></div></div><p>Average wait: <strong>{Math.round(runResult!.revised.metrics.averageWaitingMinutes)} min</strong></p>{runResult!.unscheduled.length>0&&<div className="pc-unscheduled">{runResult!.revised.unscheduled.map(item=><div key={item.arrivalId}><strong>Arrival #{item.arrivalId}</strong><span>{item.message}</span></div>)}</div>}</div>}
+        {previewAssumptions&&runResult&&<div className="pc-results">
+          <div className="pc-panel-label">BEFORE / AFTER · DRAFT</div>
+          <div className="pc-comparison">
+            <div><small>BEFORE · RECORDED ETAS</small><strong>{runResult.baseline.metrics.scheduledCount} / {runResult.baseline.metrics.scheduledCount+runResult.baseline.metrics.unscheduledCount}</strong><span>Avg wait {Math.round(runResult.baseline.metrics.averageWaitingMinutes)} min</span></div>
+            <div><small>AFTER · YOUR SCENARIO</small><strong>{runResult.revised.metrics.scheduledCount} / {runResult.revised.metrics.scheduledCount+runResult.revised.metrics.unscheduledCount}</strong><span>Avg wait {Math.round(runResult.revised.metrics.averageWaitingMinutes)} min</span></div>
+          </div>
+          <div className="pc-impact"><div><strong>{runResult.changes.filter(c=>c.reason!=="Unchanged").length}</strong><small>Changed assignments</small></div><div><strong>{runResult.revised.metrics.unscheduledCount}</strong><small>Unscheduled</small></div></div>
+          <div className="pc-panel-label">WHY THE PLAN CHANGED</div>
+          <div className="pc-change-list">
+            {runResult.changes.filter(c=>c.reason!=="Unchanged").slice(0,10).map(c=>{
+              const arrival=snapshot?.arrivals.find(a=>a.id===c.arrivalId);
+              return <div className="pc-change" key={c.arrivalId}>
+                <strong>{arrival?.vesselName??c.arrivalId}</strong>
+                <span>{c.reason}{c.deltaMinutes!==null && c.deltaMinutes!==0 ? ` · ${c.deltaMinutes>0?"+":""}${Math.round(c.deltaMinutes)} min vs baseline`:""}</span>
+              </div>;
+            })}
+            {runResult.changes.every(c=>c.reason==="Unchanged")&&<p className="pc-scenario-note">No change under these assumptions. Increase simultaneous arrivals, equipment per vessel, or select an outage affecting a busy window.</p>}
+          </div>
+          {runResult.revised.unscheduled.length>0&&<div className="pc-unscheduled">{runResult.revised.unscheduled.map(item=><div key={item.arrivalId}><strong>{snapshot?.arrivals.find(x=>x.id===item.arrivalId)?.vesselName??item.arrivalId}</strong><span>{item.reason}</span></div>)}</div>}
+        </div>}
         {!previewAssumptions&&<div className="pc-standby"><span>◷</span><strong>Ready to simulate</strong><p>Select assumptions and run a draft to compare available berth/equipment resources against arriving vessels.</p></div>}
         <div className="pc-caveat">Not certified for real-world port dispatch. Actual shifts, cargo requirements, vessel dimensions, maintenance windows and fuel calculations are not in the current dataset.</div>
       </aside>
