@@ -3,21 +3,7 @@ import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap } from 'rea
 import L from 'leaflet'
 import { Layers, Satellite, Map as MapIcon, X, ChevronDown, MapPin, Ship } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
-
-export const ports = [
-  { name: 'Gulfport Port', coordinates: [30.365, -89.093] as [number, number] },
-  { name: 'PortMiami', coordinates: [25.778, -80.180] as [number, number] },
-  { name: 'Port of Los Angeles', coordinates: [33.7405, -118.2765] as [number, number] },
-  { name: 'Port of Jacksonville', coordinates: [30.324, -81.653] as [number, number] },
-  { name: 'Port of Oakland', coordinates: [37.795, -122.274] as [number, number] },
-  { name: 'Port of Charleston', coordinates: [32.794, -79.923] as [number, number] },
-  { name: 'Ports of Tacoma and Seattle', coordinates: [47.44, -122.39] as [number, number] },
-  { name: 'Port of Virginia', coordinates: [36.8508, -76.289] as [number, number] },
-  { name: 'Port of Houston', coordinates: [29.740, -95.020] as [number, number] },
-  { name: 'Port of Savannah', coordinates: [32.081, -81.088] as [number, number] },
-  { name: 'Port of Long Beach', coordinates: [33.754, -118.216] as [number, number] },
-  { name: 'Port of New York and New Jersey', coordinates: [40.668, -74.145] as [number, number] },
-]
+import { ports } from './ports'
 
 const gulfport = L.latLng(30.365, -89.093)
 
@@ -149,25 +135,25 @@ export default function EarthMap({
   const [vessels, setVessels] = useState<VesselPosition[]>([])
   const [aisStatus, setAisStatus] = useState<'connecting' | 'live' | 'offline' | 'unsupported'>('connecting')
   const [lastUpdate, setLastUpdate] = useState<string>('')
+  const [previousPortName, setPreviousPortName] = useState(selectedPortName)
+
+  // Reset port-specific data before rendering children; preserve map/layer controls.
+  if (previousPortName !== selectedPortName) {
+    setPreviousPortName(selectedPortName)
+    setVessels([])
+    setAisStatus('connecting')
+    setLastUpdate('')
+  }
+  const region = selectedPortName === 'Gulfport Port' ? 'gulfport' : selectedPortName === 'PortMiami' ? 'miami' : null
+  const status = region ? aisStatus : 'unsupported'
 
   useEffect(() => {
-    const region = selectedPortName === 'Gulfport Port'
-      ? 'gulfport'
-      : selectedPortName === 'PortMiami'
-        ? 'miami'
-        : null
-    if (!region) {
-      setVessels([])
-      setAisStatus('unsupported')
-      return
-    }
+    if (!region) return
 
     const baseEndpoint = (import.meta.env.VITE_AIS_API_URL as string | undefined)?.trim() || '/api/vessels'
     const endpoint = new URL(baseEndpoint, window.location.origin)
     endpoint.searchParams.set('region', region)
     let active = true
-    setVessels([])
-    setAisStatus('connecting')
 
     const refresh = async () => {
       try {
@@ -204,7 +190,7 @@ export default function EarthMap({
       active = false
       window.clearInterval(interval)
     }
-  }, [selectedPortName])
+  }, [region])
 
   return (
     <div className="earth-map">
@@ -254,11 +240,11 @@ export default function EarthMap({
         <MapControls labels={labels} setLabels={setLabels} layer={layer} setLayer={setLayer} selectedPort={selectedPort} selectPort={onSelectPort} />
       </MapContainer>
 
-      <div className={`ais-map-status ais-${aisStatus}`}>
+      <div className={`ais-map-status ais-${status}`}>
         <Ship size={16} />
         <span>
-          <strong>{aisStatus === 'live' ? 'AIS API connected' : aisStatus === 'connecting' ? 'Connecting to vessel API' : aisStatus === 'unsupported' ? 'AIS not configured for this port' : 'AIS API unavailable'}</strong>
-          <small>{aisStatus === 'live' ? `${vessels.length} received vessel positions · checked ${lastUpdate}` : aisStatus === 'unsupported' ? 'Gulfport and Miami monitoring available' : 'Start the vessel API or configure VITE_AIS_API_URL'}</small>
+          <strong>{status === 'live' ? 'AIS API connected' : status === 'connecting' ? 'Connecting to vessel API' : status === 'unsupported' ? 'AIS not configured for this port' : 'AIS API unavailable'}</strong>
+          <small>{status === 'live' ? `${vessels.length} received vessel positions · checked ${lastUpdate}` : status === 'unsupported' ? 'Gulfport and Miami monitoring available' : 'Start the vessel API or configure VITE_AIS_API_URL'}</small>
         </span>
       </div>
     </div>

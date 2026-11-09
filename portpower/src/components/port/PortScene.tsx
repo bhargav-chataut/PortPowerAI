@@ -11,8 +11,6 @@ export type PortSceneProps = {
 
 function AerialReference() {
   const texture = useTexture(`${import.meta.env.BASE_URL}assets/gulfport-aerial.jpg`)
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.anisotropy = 8
 
   const image = texture.image as {
     width?: number
@@ -28,7 +26,20 @@ function AerialReference() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
       <planeGeometry args={[width, height]} />
-      <meshBasicMaterial map={texture} side={THREE.DoubleSide} toneMapped={false} />
+      <meshBasicMaterial side={THREE.DoubleSide} toneMapped={false}>
+        <texture
+          attach="map"
+          args={[
+            texture.image, THREE.UVMapping,
+            THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping,
+            THREE.LinearFilter, THREE.LinearMipmapLinearFilter,
+            THREE.RGBAFormat, THREE.UnsignedByteType, 8,
+          ]}
+          colorSpace={THREE.SRGBColorSpace}
+          anisotropy={8}
+          onUpdate={(map) => { map.needsUpdate = true }}
+        />
+      </meshBasicMaterial>
     </mesh>
   )
 }

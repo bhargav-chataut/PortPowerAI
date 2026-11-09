@@ -4,7 +4,7 @@ import Header from './components/dashboard/Header'
 import MetricsPanel from './components/dashboard/MetricsPanel'
 import Sidebar from './components/dashboard/Sidebar'
 import EarthMap from './components/maps/EarthMap'
-import { ports } from './components/maps/EarthMap'
+import { ports } from './components/maps/ports'
 import PortScene from './components/port/PortScene'
 
 function App() {
