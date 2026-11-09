@@ -243,6 +243,7 @@ import {
   
     return (
       <main
+        className="pp-arrivals-page"
         style={{
           maxWidth: "1440px",
           margin: "0 auto",
@@ -253,6 +254,7 @@ import {
         <header style={{ marginBottom: "26px" }}>
           <Link
             to={`/${port}`}
+            className="pp-arrivals-back"
             style={{
               color: "#0369a1",
               fontSize: "13px",
