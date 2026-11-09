@@ -52,7 +52,9 @@ test("outage window blocks selected machine until its release",()=>{
 });
 
 test("scarce resources produce unscheduled calls, not fictional allocations",()=>{
-  const result=compareScenario(fixture(),{
+  const congested=fixture();
+  congested.arrivals=congested.arrivals.map(a=>({...a,plannedEta:day(10)}));
+  const result=compareScenario(congested,{
     ...settings,machinesPerCall:4,horizonStartUtc:"2026-12-10T05:00:00.000Z",
     horizonEndUtc:"2026-12-11T05:00:00.000Z",congestionCount:4
   });
