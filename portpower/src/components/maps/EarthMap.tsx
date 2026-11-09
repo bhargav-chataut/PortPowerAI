@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { MapContainer, Marker, Popup, TileLayer, ZoomControl, useMap } from 'react-leaflet'
+import { MapContainer, Marker, TileLayer, Tooltip, ZoomControl, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Layers, Satellite, Map as MapIcon, X, ChevronDown, MapPin, Ship } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 
 export const ports = [
   { name: 'Gulfport Port', coordinates: [30.365, -89.093] as [number, number] },
-  { name: 'PortMiami', coordinates: [25.778, -80.180] as [number, number] },
+  { name: 'PortMiami', coordinates: [25.777, -80.172] as [number, number] },
   { name: 'Port of Los Angeles', coordinates: [33.7405, -118.2765] as [number, number] },
   { name: 'Port of Jacksonville', coordinates: [30.324, -81.653] as [number, number] },
   { name: 'Port of Oakland', coordinates: [37.795, -122.274] as [number, number] },
@@ -39,13 +39,6 @@ type VesselPosition = {
   timestamp?: string
 }
 
-const vesselIcon = L.divIcon({
-  className: 'vessel-marker-wrap',
-  html: '<div class="vessel-marker"><span></span></div>',
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-})
-
 function MapFollowPort({ port }: { port: (typeof ports)[number] }) {
   const map = useMap()
   useEffect(() => {
@@ -53,6 +46,13 @@ function MapFollowPort({ port }: { port: (typeof ports)[number] }) {
   }, [map, port])
   return null
 }
+
+const createVesselIcon = (course: number) => L.divIcon({
+  className: 'vessel-marker-wrap',
+  html: `<div class="vessel-marker" style="transform:rotate(${course}deg)"><span></span></div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+})
 
 function MapControls({
   labels,
@@ -69,6 +69,7 @@ function MapControls({
   selectedPort: (typeof ports)[number]
   selectPort: (portName: string) => void
 }) {
+  const map = useMap()
   const [portsOpen, setPortsOpen] = useState(true)
   const [layersOpen, setLayersOpen] = useState(true)
 
@@ -95,6 +96,7 @@ function MapControls({
                 className={selectedPort.name === port.name ? 'active' : ''}
                 onClick={() => {
                   selectPort(port.name)
+                  map.flyTo(port.coordinates, port.name === 'Gulfport Port' || port.name === 'PortMiami' ? 12 : 11, { duration: 1.2 })
                 }}
               >
                 <MapPin size={14} /> {port.name}
@@ -156,6 +158,7 @@ export default function EarthMap({
       : selectedPortName === 'PortMiami'
         ? 'miami'
         : null
+
     if (!region) {
       setVessels([])
       setAisStatus('unsupported')
@@ -177,6 +180,7 @@ export default function EarthMap({
         const items = Array.isArray(payload) ? payload : payload.vessels ?? payload.data ?? []
         if (!Array.isArray(items)) throw new Error('Invalid vessel API response')
         if (!active) return
+
         setVessels(items.map((item: Record<string, unknown>) => ({
           mmsi: String(item.mmsi ?? item.MMSI ?? ''),
           name: String(item.name ?? item.shipName ?? item.SHIPNAME ?? 'Unknown vessel'),
@@ -198,8 +202,9 @@ export default function EarthMap({
         if (active) setAisStatus('offline')
       }
     }
+
     void refresh()
-    const interval = window.setInterval(() => { void refresh() }, 10_000)
+    const interval = window.setInterval(() => { void refresh() }, 30_000)
     return () => {
       active = false
       window.clearInterval(interval)
@@ -240,14 +245,17 @@ export default function EarthMap({
           <Marker
             key={vessel.mmsi || `${vessel.name}-${vessel.latitude}-${vessel.longitude}`}
             position={[vessel.latitude, vessel.longitude]}
-            icon={vesselIcon}
+            icon={createVesselIcon(vessel.course)}
           >
-            <Popup>
-              <strong>{vessel.name}</strong>
-              <p>MMSI: {vessel.mmsi}</p>
-              <p>Reported speed: {Number.isFinite(vessel.speed) ? vessel.speed : 'Unknown'} kn</p>
-              <p>Last backend receipt: {vessel.timestamp ? new Date(vessel.timestamp).toLocaleString() : 'Unavailable'}</p>
-            </Popup>
+            <Tooltip direction="top" offset={[0, -14]} opacity={1}>
+              <div className="vessel-tooltip">
+                <strong>Name: {vessel.name}</strong>
+                <span>MMSI: {vessel.mmsi || 'Unknown'}</span>
+                <span>Speed: {vessel.speed.toFixed(1)} kn</span>
+                <span>Course: {vessel.course.toFixed(0)}°</span>
+                {vessel.destination && <span>Destination: {vessel.destination}</span>}
+              </div>
+            </Tooltip>
           </Marker>
         ))}
         <ZoomControl position="bottomright" />
