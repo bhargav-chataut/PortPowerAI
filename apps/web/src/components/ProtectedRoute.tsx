@@ -68,6 +68,6 @@ export default function ProtectedRoute({
     return <Navigate to={`/${manager.port}`} replace />;
   }
 
-  const isManagementPage = /\/(berths|equipment|arrivals)$/.test(location.pathname);
+  const isManagementPage = /\/(berths|equipment|arrivals|planning)$/.test(location.pathname);
   return isManagementPage ? <ManagerWorkspace port={port}>{children}</ManagerWorkspace> : <>{children}</>;
 }
