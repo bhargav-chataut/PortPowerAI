@@ -1,5 +1,28 @@
 # PortPower AI — Shared Data & API Contracts (v1 proposal)
 
+## SCHED-02 — additive FCFS contract proposal
+
+`scheduleFcfs(input, assumptions)` is a pure shared-core function. Input reuses
+the validated `SchedulingInputs` arrival/berth/equipment collections. Assumptions
+provide an explicit UTC planning horizon, documented availability of currently
+available resources throughout that horizon, and per-arrival equipment type/count
+requirements (including an explicitly confirmed empty list for berth-only work).
+Each assumption is labeled planner-confirmed or simulated with a note.
+
+Order is ETA then arrival ID using locale-independent string ordering. Successful
+service starts are nondecreasing in that order; infeasible calls do not block later
+calls. Choose earliest feasible start, preferred berth on equal starts, then berth
+ID; equipment ties use availability then ID. Unavailable resources stay blocked
+for the horizon. Existing equipment-to-berth restrictions are preserved. The same
+MMSI cannot receive overlapping calls. Assignments are half-open intervals.
+Missing durations/requirements and infeasible resources/horizon produce explicit
+unscheduled records. All successful timestamps serialize as UTC ISO strings.
+Positive durations round up to milliseconds so work is never shortened.
+
+This is an assignment heuristic, not an energy optimizer or physical compatibility
+guarantee. No vessel dimensions, rates or release times are inferred. Existing
+simulation and scheduling-input contracts are not changed by implication.
+
 ## SCHED-01 — scheduling input contract proposal (additive)
 
 Introduce independent `SchedulingInputs` interfaces in `packages/core/src/types.ts`

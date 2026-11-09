@@ -2,6 +2,11 @@
 
 ## Owners
 
+### SCHED-02 — pure deterministic FCFS scheduler
+User-assigned scope: shared core types, scheduler, unit tests, exports and docs.
+No UI, API, or database changes. Validate ETA ordering, berth/equipment/vessel
+exclusivity, explicit assumptions, waiting/completion metrics and unscheduled reasons.
+
 ### SCHED-01 — authenticated scheduling input snapshot
 User-assigned scope: additive shared scheduling inspection types/validation,
 server-side read-only loader and optimization inspection route, synthetic tests,

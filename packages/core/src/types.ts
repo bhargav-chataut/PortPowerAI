@@ -74,3 +74,36 @@ export interface SchedulingInputs {
   issues: SchedulingInputIssue[]; readyForScheduling: boolean;
   limitations: string[];
 }
+
+export type FcfsSchedulingInput = Pick<SchedulingInputs, "berths" | "equipment" | "arrivals" | "assumptions">;
+export interface FcfsEquipmentRequirement {
+  type: SchedulingEquipmentType; count: number; minimumCapacityTonnes?: number;
+}
+export interface FcfsSchedulingAssumptions {
+  horizonStartUtc: string; horizonEndUtc: string;
+  availableResources: { source: "planner-confirmed" | "simulated"; note: string };
+  equipmentRequirements: {
+    arrivalId: string; source: "planner-confirmed" | "simulated"; note: string;
+    requirements: FcfsEquipmentRequirement[];
+  }[];
+}
+export interface FcfsAssignment {
+  arrivalId: string; mmsi: string; plannedEtaUtc: string; berthId: string;
+  equipmentIds: string[]; serviceStartUtc: string; completionTimeUtc: string;
+  waitingMinutes: number; serviceDurationMinutes: number; turnaroundMinutes: number;
+  durationSource: SchedulingArrival["durationSource"];
+}
+export interface FcfsUnscheduledArrival {
+  arrivalId: string;
+  reason: "MISSING_SERVICE_DURATION" | "MISSING_EQUIPMENT_REQUIREMENTS" |
+    "NO_AVAILABLE_BERTH" | "INSUFFICIENT_EQUIPMENT" | "NO_SLOT_IN_HORIZON";
+  message: string;
+}
+export interface FcfsScheduleResult {
+  algorithm: "fcfs-1.0"; assignments: FcfsAssignment[]; unscheduled: FcfsUnscheduledArrival[];
+  metrics: { scheduledCount: number; unscheduledCount: number; totalWaitingMinutes: number;
+    averageWaitingMinutes: number; lastCompletionTimeUtc: string | null };
+  assumptions: FcfsSchedulingAssumptions;
+  inputAssumptions: SchedulingInputs["assumptions"];
+  limitations: string[];
+}

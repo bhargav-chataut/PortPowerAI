@@ -1,5 +1,103 @@
 # PortPowerAI — Offline Demo MVP
 
+## Shared FCFS scheduler
+
+`scheduleFcfs(input, assumptions)` is exported by `packages/core`. It is a pure
+TypeScript function; this step adds no UI, API route or database writes.
+Pass the validated scheduling-input collections (`arrivals`, `berths`, `equipment`,
+`assumptions`) and explicit scheduling assumptions:
+
+```ts
+const result = scheduleFcfs(inputs, {
+  horizonStartUtc: "2026-11-09T06:00:00Z",
+  horizonEndUtc: "2026-11-10T06:00:00Z",
+  availableResources: {
+    source: "simulated",
+    note: "Synthetic demo: resources marked available remain usable in this horizon",
+  },
+  equipmentRequirements: [{
+    arrivalId: "41", // Synthetic example; use a matching input arrival ID.
+    source: "simulated",
+    note: "Synthetic demonstration requirement, not inferred from cargo quantity",
+    requirements: [{ type: "forklift", count: 1 }],
+  }],
+});
+```
+
+This example's dates and resource requirement are synthetic, not real port data.
+For confirmed plans use `source: "planner-confirmed"` with a meaningful note.
+Requirements must be supplied for every scheduled arrival; an explicitly confirmed
+empty list permits berth-only work, while a missing list leaves the arrival unscheduled.
+An optional `minimumCapacityTonnes` filters equipment using known capacities;
+unknown capacity cannot satisfy that constraint. No equipment productivity is inferred.
+
+Arrivals are processed by ETA then locale-independent string ID. Service starts
+are nondecreasing (strict FCFS); an infeasible arrival does not discard later work.
+The earliest feasible berth/resource start is chosen, with preferred berth used
+when start times tie. A busy preferred berth does not cause avoidable waiting
+when another eligible berth can serve earlier. Occupied/closed/maintenance berths
+and unavailable equipment remain blocked for the entire supplied horizon.
+Equipment berth restrictions and same-MMSI vessel exclusivity are preserved.
+
+Results include `assignments`, `unscheduled` reasons, scheduled-call waiting and
+turnaround minutes, UTC service/completion times, aggregate waiting metrics and
+assumption provenance. Empty results have zero counts/waiting and null completion.
+Positive durations round up to milliseconds; no required work is shortened.
+This is a scheduling heuristic, not a physical berth-fit, energy/SOC, workforce or
+globally optimal plan guarantee. It does not automatically operate port equipment.
+
+Run `npm test --prefix packages/core` from the repository root. Its pretest uses
+the existing backend TypeScript compiler to build core; backend dependencies must
+already be installed. Tests use synthetic fixtures and require no database or API key.
+
+## Scheduling input inspection
+
+After signing in, open `GET /api/optimization/inputs` through the same app origin
+(for example `http://localhost:5173/api/optimization/inputs`). The endpoint accepts
+no port/query overrides: the active manager's session determines the port.
+It loads only the assigned port's manager berths, equipment and active arrivals
+in a repeatable-read, read-only PostgreSQL transaction. Cancelled/completed arrivals
+are excluded; real AIS records and the fictional scenario tables are never queried.
+
+The `scheduling-inputs-1.0` response includes `port`, `berths`, `equipment`,
+`arrivals`, explicit `units`, `assumptions`, `issues`, `limitations`, and
+`readyForScheduling`. BIGINT IDs stay strings, known NUMERIC values become numbers,
+ETAs normalize to UTC, and supplied service hours convert to minutes.
+Missing service durations or available resources give actionable error issues
+and `readyForScheduling: false`, while still returning the inspection snapshot.
+Corrupt records or cross-port references return 422; anonymous requests return 401,
+inactive/unassigned managers 403, unsupported query parameters 400, and storage
+outages a sanitized 503. No tables or records are created or updated.
+
+Unknown capacities, productivity, shift/release windows and task-specific equipment
+requirements are surfaced explicitly. Readiness means minimum completeness for a
+duration-based planning pass; it does not guarantee a feasible assignment or physical
+compatibility. There is no scheduling optimizer in this endpoint.
+
+Defaults invent no operational values. The trusted server composition function
+`createOptimizationRouter(db, configuration)` can optionally accept:
+
+```ts
+// Synthetic example only; configure a real planning arrival ID explicitly.
+const configuration = {
+  simulatedServiceDurations: [
+    { arrivalId: "41", minutes: 90, note: "Synthetic demo duration, not measured productivity" },
+  ],
+};
+```
+
+An override applies only if that active arrival's stored duration is null and is
+reported with `durationSource: "simulated"` plus an attributed assumption. It never
+replaces a manager-supplied duration, estimates productivity, or supplies capacities.
+The default mounted endpoint uses no overrides. The shared contract and runtime
+builder live in `packages/core`; the read-only loader is
+`services/vessel-api/src/services/schedulingInputService.ts`.
+
+Synthetic tests cover validation, missing fields, assumption provenance, units,
+port isolation, authenticated cookies, exclusion of completed/cancelled arrivals,
+transaction cleanup and sanitized failures. Run the backend suite without optional
+database-writing checks using `OPERATIONS_POSTGRES_TEST=0 BERTH_POSTGRES_TEST=0 npm test`.
+
 ## Manager berth management
 
 Signed-in managers can open `/gulfport/berths` or `/miami/berths`, or choose

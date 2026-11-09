@@ -30,7 +30,9 @@ Read `docs/TECHNICAL_SPEC.md`, `docs/API_AND_DATA_CONTRACTS.md` and `docs/TASK_B
 ## Commands (target scripts; create when bootstrapping)
 - Current React app (from `apps/web`): `npm run dev`, `npm run build`, `npm test`.
 - Shared operations core is built automatically by frontend/backend prebuild, predev,
-  and pretest hooks. Domain tests run in the vessel backend suite.
+  and pretest hooks. Existing domain tests run in the vessel backend suite.
+- FCFS core unit tests (from repository root): `npm test --prefix packages/core`.
+  The pretest builds core using the backend's installed TypeScript compiler.
 - Real PostgreSQL operations test (from `services/vessel-api`):
   `OPERATIONS_POSTGRES_TEST=1 npm test` (isolated schema, removed after testing).
 - Apply operations migrations without starting AIS (from `services/vessel-api`):

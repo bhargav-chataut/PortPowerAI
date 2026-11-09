@@ -112,6 +112,10 @@ export function buildSchedulingInputs(value: unknown, configuration: SchedulingI
     if (!(eta instanceof Date) && !(typeof eta === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(eta))) fail(`${path}.planned_eta`, "Planned ETA must be a date or ISO timestamp with an explicit timezone.");
     const date = new Date(eta);
     if (!Number.isFinite(date.getTime())) fail(`${path}.planned_eta`, "Planned ETA is invalid.");
+    if (typeof eta === "string") {
+      const day = new Date(`${eta.slice(0, 10)}T00:00:00Z`);
+      if (!Number.isFinite(day.getTime()) || day.toISOString().slice(0, 10) !== eta.slice(0, 10) || Number(eta.slice(11, 13)) > 23) fail(`${path}.planned_eta`, "Planned ETA contains an invalid calendar day or clock time.");
+    }
     const cargoType = choice(row.cargo_type, ["containers", "general", "bulk", "roro"] as const, `${path}.cargo_type`);
     const unit = cargoType === "containers" ? "container_moves" : cargoType === "roro" ? "vehicle_moves" : "tonnes";
     if (row.workload_unit !== unit) fail(`${path}.workload_unit`, `Cargo type ${cargoType} requires ${unit}.`);
