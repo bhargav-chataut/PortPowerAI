@@ -1,0 +1,95 @@
+/* Uniform dark command center for all manager-owned operational screens. */
+.pp-management-shell .pp-managed-content > main {
+  background: transparent !important;
+  box-shadow: none;
+  color: #e8f4fd !important;
+  border-radius: 0;
+  padding: 8px 0 34px !important;
+}
+.pp-management-shell .pp-managed-content { padding: 35px 38px; }
+.pp-management-shell .pp-managed-content h1,
+.pp-management-shell .pp-managed-content h2,
+.pp-management-shell .pp-managed-content h3,
+.pp-management-shell .pp-managed-content strong { color: #eef7ff !important; }
+.pp-management-shell .pp-managed-content p { color: #a1b6c9; }
+.pp-management-shell .pp-managed-content a { color: #61dcca !important; }
+.pp-management-shell .pp-managed-content .berth-card,
+.pp-management-shell .pp-managed-content .equipment-card,
+.pp-management-shell .pp-managed-content .equipment-stat,
+.pp-management-shell .pp-managed-content .berth-page section,
+.pp-management-shell .pp-managed-content .equipment-page section,
+.pp-management-shell .pp-managed-content .pp-arrivals-card,
+.pp-management-shell .pp-managed-content .pp-arrivals-stat {
+  background: #112237 !important;
+  border: 1px solid #293e54 !important;
+  color: #e6f1fa !important;
+  box-shadow: 0 8px 25px rgba(1,9,22,.16);
+  border-radius: 13px;
+}
+.pp-management-shell .pp-managed-content .pp-arrivals-card { min-width: 0; }
+.pp-management-shell .pp-managed-content .pp-arrivals-stat { min-width: 0; }
+.pp-management-shell .pp-managed-content label { color: #cfdeea !important; }
+.pp-management-shell .pp-managed-content input,
+.pp-management-shell .pp-managed-content select,
+.pp-management-shell .pp-managed-content textarea {
+  background: #0b1b2c !important;
+  border: 1px solid #355067 !important;
+  color: #f0f8ff !important;
+  border-radius: 8px;
+  color-scheme: dark;
+}
+.pp-management-shell .pp-managed-content input::placeholder,
+.pp-management-shell .pp-managed-content textarea::placeholder { color: #8da5b9 !important; opacity: 1; }
+.pp-management-shell .pp-managed-content input:focus,
+.pp-management-shell .pp-managed-content textarea:focus,
+.pp-management-shell .pp-managed-content select:focus { outline: 2px solid #36c9b7 !important; outline-offset: 1px; }
+.pp-management-shell .pp-managed-content button[type="submit"],
+.pp-management-shell .pp-managed-content .equipment-primary-button,
+.pp-management-shell .pp-managed-content .berth-card button {
+  background: #25c7b3 !important; color: #062b2c !important; border: none !important;
+  font-weight: 750; border-radius: 8px;
+}
+.pp-management-shell .pp-managed-content button:disabled { opacity: .55; }
+.pp-management-shell .pp-managed-content table { background: transparent !important; border-collapse: collapse; }
+.pp-management-shell .pp-managed-content thead,
+.pp-management-shell .pp-managed-content th {
+  background: #192e44 !important; color: #b6cadb !important;
+  border-bottom: 1px solid #355067 !important;
+}
+.pp-management-shell .pp-managed-content td {
+  color: #e2ecf5 !important;
+  border-bottom: 1px solid #304258 !important;
+}
+.pp-management-shell .pp-managed-content tbody tr { background: transparent !important; }
+.pp-management-shell .pp-managed-content tbody tr:hover { background: #1b3248 !important; }
+.pp-management-shell .pp-managed-content td div,
+.pp-management-shell .pp-managed-content td span:not(.equipment-status):not(.berth-status) { color: #aabfd0 !important; }
+.pp-management-shell .pp-managed-content .equipment-header-label { color: #7ce5d4; }
+.pp-management-shell .pp-managed-content .equipment-stat span,
+.pp-management-shell .pp-managed-content .equipment-type,
+.pp-management-shell .pp-managed-content .equipment-footer,
+.pp-management-shell .pp-managed-content .berth-help { color: #a2b8ca !important; }
+.pp-management-shell .pp-managed-content .equipment-error,
+.pp-management-shell .pp-managed-content .berth-error { color: #ffb1bb !important; }
+.pp-management-shell .pp-managed-content .equipment-success { color: #83efc4 !important; background: #11392f; }
+.pp-management-shell .pp-managed-content .equipment-status-select { background: #0b1b2c !important; color: #edf9ff !important; }
+.pp-management-shell .pp-managed-content .equipment-stat strong { color: #f1f9ff !important; }
+.pp-management-shell .pp-managed-content .berth-page > nav,
+.pp-management-shell .pp-managed-content .equipment-back,
+.pp-management-shell .pp-managed-content .pp-arrivals-back { display: none !important; }
+.pp-management-shell .pp-managed-content .equipment-header { margin-bottom: 25px; }
+.pp-management-shell .pp-managed-content .equipment-header h1,
+.pp-management-shell .pp-managed-content .berth-page h1,
+.pp-management-shell .pp-managed-content .pp-arrivals-page h1 { font-size: 32px !important; letter-spacing: -.8px; }
+.pp-management-shell .pp-managed-content .pp-arrivals-page > header { margin-bottom: 26px !important; }
+.pp-management-shell .pp-managed-content .pp-arrivals-page > div { gap: 17px; }
+.pp-management-shell .pp-managed-content .pp-arrivals-page table { min-width: 600px; }
+.pp-management-shell .pp-managed-content .pp-arrivals-page table strong { color: #fff !important; }
+.pp-management-shell .pp-managed-content .pp-arrivals-page table td,
+.pp-management-shell .pp-managed-content .pp-arrivals-page table th { padding: 13px 12px !important; }
+.pp-management-shell .pp-managed-content .pp-arrivals-card h2 { color: #eff9ff !important; }
+.pp-management-shell .pp-managed-content .pp-arrivals-stat strong { color: #eef9ff !important; }
+@media (max-width: 820px) {
+  .pp-management-shell .pp-managed-content { padding: 19px 16px; }
+  .pp-management-shell .pp-managed-content .pp-arrivals-page > div { flex-direction: column; }
+}

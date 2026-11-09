@@ -1,14 +1,16 @@
-# Secrets and local environments
+# Environment variables (API keys)
 .env
 .env.*
 !.env.example
+
+# Dependencies
 node_modules/
+
+# Compiled TypeScript
 dist/
-build/
-coverage/
-__pycache__/
-.pytest_cache/
-.venv/
-venv/
-*.py[cod]
+
+# Mac files
 .DS_Store
+
+# Logs
+*.log
