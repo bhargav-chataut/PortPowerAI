@@ -16,6 +16,22 @@ function App() {
   return (
     <main className="relative h-screen w-full overflow-hidden bg-[#090b10]">
       <Header />
+      <nav aria-label="Monitored AIS regions" className="pointer-events-auto absolute left-1/2 top-20 z-[1002] flex -translate-x-1/2 gap-1 rounded-xl border border-cyan-300/20 bg-[#10151c]/95 p-1 shadow-2xl backdrop-blur-xl sm:top-5">
+        {([
+          ['Gulfport Port', 'Gulfport'],
+          ['PortMiami', 'Miami'],
+        ] as const).map(([name, label]) => (
+          <button
+            key={name}
+            type="button"
+            aria-pressed={selectedPortName === name}
+            onClick={() => setSelectedPortName(name)}
+            className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${selectedPortName === name ? 'bg-cyan-400 text-slate-950' : 'text-slate-300 hover:bg-white/10'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
       {operationsOpen && <MetricsPanel onClose={() => setOperationsOpen(false)} portName={selectedPortName} />}
       <Sidebar />
 
