@@ -1,5 +1,38 @@
 # PortPower AI — Shared Data & API Contracts (v1 proposal)
 
+## OPS-01 contract proposal (additive)
+
+The operations-only contract is introduced in `packages/core/src/types.ts`;
+there is no existing core implementation to migrate. `OperatingScenario` is
+separate from the proposed energy `PortScenario`. All operational input is
+marked `synthetic: true`, region `gulfport`, schema version `operations-1.0`.
+Time is an integer minute in one fictional day, 0–1440, with half-open
+assignment intervals [start, end); back-to-back assignments do not conflict.
+Durations are minutes. IDs are unique within each collection and references
+must exist. This slice does not validate vessel dimensions or cargo capacities.
+
+`GET /api/operations/scenarios/gulfport-demo-v1` returns
+`{scenario, conflicts, persistence: 'postgres'}`.
+`PUT` on the same path accepts the full scenario with its current `revision`.
+The server validates, atomically increments the revision, and returns the same
+envelope. Stale revision: 409; invalid input: 400; unknown scenario: 404;
+database unavailable: 503. Scheduling conflicts are saved as visibly flagged
+drafts, never as feasible recommendations. Errors use `{error: string}` with
+validation `issues?: string[]`. PostgreSQL stores scenario metadata and a JSON
+snapshot in `operating_scenarios`. OPS-02 adds authoritative collection tables:
+`berths`, `vessel_calls`, `equipment`, `cargo_tasks`, and
+`task_equipment_assignments`. Reads reconstruct the same v1 response from these
+rows; saves atomically update the snapshot, revision, and related rows.
+Composite scenario-scoped foreign keys prevent cross-scenario references.
+All child tables enforce `synthetic = true`; times/durations use integer minutes.
+The one-time transactional backfill preserves saved revisions and assumptions.
+Subsequent startup migrations do not reseed edited or empty collections.
+AIS tables and APIs are unchanged. Use the planner/API for changes so revision
+and cross-field validation run; direct SQL changes bypass those safeguards.
+
+Offline mode is explicitly selected, uses the same validation and fixture,
+and stores a separate browser-local draft. It does not sync to PostgreSQL.
+
 **Rule:** Shared domain types go in `packages/core/src/types.ts`. Keep them framework-independent. Every contributor and Codex agent must code against these types instead of inventing equivalents.
 
 ## 1. Domain interfaces (proposal, implement as TypeScript)

@@ -1,6 +1,90 @@
 # PortPowerAI — Offline Demo MVP
 
+## Fictional port operations planner
+
+The React app now provides `/operations`, alongside the existing `/gulfport`,
+`/miami`, and `/vessels/:mmsi` pages. All operational schedules and equipment
+records are fictional Gulfport demo assumptions, separate from live AIS.
+
+1. In `services/vessel-api`, run `npm install` then `npm run dev` using your
+   existing PostgreSQL `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+   Startup applies the migrations and inserts the synthetic scenario only if
+   it is missing. `npm run db:migrate` also applies them without starting AIS.
+   Existing AIS tables are untouched.
+2. In `apps/web`, run `npm install` then `npm run dev` and open
+   `http://localhost:5173/operations` (use Vite's printed port if different).
+3. Edit berth assignments, vessel calls, task duration/priority, equipment
+   assignments or availability. Warnings update immediately. Click **Save
+   scenario draft** to persist to PostgreSQL. Conflicts remain visible in saved
+   drafts; a newer saved revision produces a 409 instead of overwriting it.
+4. If the API is unavailable, select **Use offline fictional demo**. This mode
+   saves only in this browser's local storage and does not update PostgreSQL.
+
+No AIS key is required for the operations module. Missing AIS credentials only
+disable live vessel reception. The original standalone `index.html` remains offline.
+
+Data sources: `packages/core/src/fixture.ts` contains the synthetic records;
+`packages/core/src/types.ts` defines the shared operations contract. The new
+PostgreSQL stores the operational records in separate related tables:
+
+| Table | Fictional records |
+| --- | --- |
+| `operating_scenarios` | Scenario metadata, revision, last saved JSON snapshot |
+| `berths` | Berth names |
+| `vessel_calls` | Planned vessel calls, berth, arrival/departure minutes |
+| `equipment` | Forklifts, yard tractors, service status and availability |
+| `cargo_tasks` | Tasks, vessel calls, durations, priorities and required equipment type |
+| `task_equipment_assignments` | Equipment reserved for each task |
+
+Refresh **portpower_db → Schemas → public → Tables** in pgAdmin to see them.
+Every child record has a `scenario_id` and enforced `synthetic = true`.
+The backend reads these tables and updates them transactionally on planner saves.
+The original JSON is retained as a saved snapshot. Use the planner/API to edit
+records so revision checks and scheduling validation run.
+
+```sql
+SELECT id, revision, updated_at, jsonb_pretty(document)
+FROM operating_scenarios;
+
+SELECT jsonb_array_elements(document->'equipment') AS fictional_equipment
+FROM operating_scenarios WHERE id = 'gulfport-demo-v1';
+
+SELECT * FROM berths;
+SELECT * FROM vessel_calls;
+SELECT * FROM equipment;
+SELECT * FROM cargo_tasks;
+SELECT * FROM task_equipment_assignments;
+```
+
+API: `GET`/`PUT /api/operations/scenarios/gulfport-demo-v1`. PUT accepts the
+whole scenario and its current revision. See `docs/API_AND_DATA_CONTRACTS.md`.
+The core builds automatically before frontend/backend dev, build and test commands;
+no root npm workspace or additional package installation is required for core.
+
+Validation commands:
+
+```text
+cd apps/web
+npm test
+npm run build
+
+cd ../../services/vessel-api
+npm test
+npm run build
+OPERATIONS_POSTGRES_TEST=1 npm test
+```
+
+The last command uses the configured local PostgreSQL server in a unique test
+schema, removed after the test. It leaves saved scenarios and AIS data intact.
+Tests require Node 22.6+; `npm test` without the flag skips the real database test.
+Production hosting must route `/api` to Express and use an SPA fallback for React routes.
+
+Planning limits: one fictional day, half-open intervals, no automatic rescheduling,
+no cargo capacity or berth dimension checks, and no dispatch or financial estimates.
+
 ## Run it
+For the separate vessel backend, run `npm run build` and `npm test` from `services/vessel-api` (after `npm install`). Region filtering accepts `GET /api/vessels?region=gulfport` or `?region=miami`; omitting the region returns all latest observations.
+
 Open `index.html` in any modern browser. No npm, server, API key or account needed. Fonts fall back to system fonts when offline.
 
 ## Tomorrow's demo (90 seconds)

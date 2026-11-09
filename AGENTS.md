@@ -28,6 +28,14 @@ Read `docs/TECHNICAL_SPEC.md`, `docs/API_AND_DATA_CONTRACTS.md` and `docs/TASK_B
 6. Do not merge or overwrite another agent's in-progress files without team review.
 
 ## Commands (target scripts; create when bootstrapping)
+- Current React app (from `apps/web`): `npm run dev`, `npm run build`, `npm test`.
+- Shared operations core is built automatically by frontend/backend prebuild, predev,
+  and pretest hooks. Domain tests run in the vessel backend suite.
+- Real PostgreSQL operations test (from `services/vessel-api`):
+  `OPERATIONS_POSTGRES_TEST=1 npm test` (isolated schema, removed after testing).
+- Apply operations migrations without starting AIS (from `services/vessel-api`):
+  `npm run db:migrate`.
+- Vessel backend (from `services/vessel-api`): `npm run build`, `npm test`, `npm run dev`.
 - `npm install`
 - `npm run dev --workspace apps/web`
 - `npm run test --workspace packages/core`

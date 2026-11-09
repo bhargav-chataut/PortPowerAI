@@ -5,6 +5,31 @@
 
 ## Completed
 
+### OPS-02 — separate operations tables
+
+- Added scenario-scoped `berths`, `vessel_calls`, `equipment`, `cargo_tasks`,
+  and `task_equipment_assignments`, with foreign keys and synthetic-data checks.
+- Backend reconstructs the existing API response from relational rows and saves
+  all related changes in one revision-checked transaction.
+- Startup/`npm run db:migrate` backfills saved JSON scenarios once, preserving
+  edits and revisions. Original snapshots and AIS tables remain intact.
+- PostgreSQL tests cover migration, reinitialization, assignments, empty
+  collections, constraints, concurrent updates, and rollback after a partial save.
+
+### OPS-01 — fictional operations planning
+
+- Shared operations types, synthetic fixture, structural validation and deterministic conflict checks.
+- `/operations` planner: berth states, vessel calls, cargo tasks, equipment workload,
+  editable assignments/availability, and a timeline. All operations are labeled fictional.
+- GET/PUT scenario API with PostgreSQL JSONB documents and atomic revision checks.
+- Additive startup migration and seed that preserves existing edits and AIS tables.
+- Explicit browser-local offline demo; no automatic sync to the database.
+- Backend API and real PostgreSQL temporary-table tests, plus frontend persistence/client tests.
+
+Limitations: one fictional day; no physical berth dimensions, cargo capacity, workforce,
+tides, or automatic optimization. A conflict-free result covers only modeled assignments.
+Browser visual/interactions have not been automatically verified in this session.
+
 - [x] Set up the existing GitHub repository
 - [x] Create `feature/backend` development branch
 - [x] Initialize Express + TypeScript backend

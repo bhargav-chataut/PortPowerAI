@@ -1,6 +1,19 @@
 # PortPower AI — Parallel Build Task Board
 
 ## Owners
+
+### OPS-02 — Separate operations database tables
+User-assigned backend scope: additive migration, scenario repository, database
+integration tests, and docs. Preserve v1 API/types and saved scenarios while
+moving operational collections to related tables, with atomic revisioned saves.
+
+### OPS-01 — Fictional Gulfport operations planning
+User-assigned full-stack scope: `packages/core/**` (new operations contract,
+fixture and deterministic validation), `services/vessel-api/**` (scenario API
+and additive persistence), `apps/web/**` (planner), and integration docs/scripts.
+Deliver editable berth/vessel/task/equipment assumptions, conflict detection,
+timeline, PostgreSQL revision checks, and explicit offline browser persistence.
+No AIS linkage or changes to energy-domain contracts.
 - **Frontend (experienced):** app shell, controls, timeline, charting, SVG twin, local engine integration.
 - **Backend (less experienced):** optional AI FastAPI adapter, schema validation, health endpoint, manual-mode graceful fallback; may help with smoke testing while P0 runs.
 - **AI / core lead (you):** canonical fixture/types, numerical formulas, optimization heuristic, tests; AI intake prompts/schema at P1.
