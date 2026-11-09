@@ -165,7 +165,7 @@ export default function PlanningCalendar({port}:{port:PortCode}) {
             return <button type="button" className={`pc-day-cell ${calls.length?"pc-day-active":""}`} key={c.key} onClick={()=>{setCursor(c.key);setScale("day");resetResult();}}>
               <span className="pc-day-number">{c.label}</span><small>{calls.length? `${calls.length} vessel${calls.length===1?"":"s"}` : "—"}</small>
               {calls.slice(0,2).map(a=><span className="pc-day-event" key={a.id}>{a.vesselName??a.mmsi}</span>)}
-              {calls.length>2&&<span className="pc-day-more">+${calls.length-2} more</span>}
+              {calls.length>2&&<span className="pc-day-more">+{calls.length-2} more</span>}
             </button>;
           })}
         </div> : scale === "year" ? <div className="pc-year-grid">
